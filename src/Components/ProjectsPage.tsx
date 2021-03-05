@@ -1,6 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { CSSProperties, useState } from "react";
+import ReactDOM from "react-dom";
+import {
+    DragDropContext,
+    Droppable,
+    Draggable,
+    DropResult,
+    DraggableLocation,
+    DraggingState,
+    NotDraggingStyle,
+    DraggingStyle,
+} from "react-beautiful-dnd";
+import Column from './Column'
+import { State } from '../Scripts/GlobalState';
 
-export default function ProjectPage() {
-    const [hideSourceOnDrag, setHideSourceOnDrag] = React.useState(true)
 
+export default function ProjectsPage() {
+    return (
+        <div>
+            <Column></Column>
+        </div>
+    )
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { Button, Navbar, NavDropdown } from "react-bootstrap";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import Column from "./Column";
 import ProjectsPage from './ProjectsPage'
 
 
@@ -13,7 +14,7 @@ const Navigation = () => {
                 <Navbar.Brand>
                     Project Chronos
         </Navbar.Brand>
-
+                {/* <ProjectsPage /> */}
                 <Link
                     // variant="dark"
                     to="/projects"
@@ -53,8 +54,8 @@ const Navigation = () => {
                     <ProjectsPage />
                 </Route>
                 <Route path="/dashboard">
-                    //Dashboard Page Comp
-          </Route>
+                    //dashboard
+                </Route>
                 <Route path="/week">
                     //Week Page Comp
           </Route>
