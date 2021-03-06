@@ -1,72 +1,90 @@
-import React, { CSSProperties, useState } from "react";
-import ReactDOM from "react-dom";
-import {
-    DragDropContext,
-    Droppable,
-    Draggable,
-    DropResult,
-    DraggableLocation,
-    DraggingState,
-    NotDraggingStyle,
-    DraggingStyle,
-} from "react-beautiful-dnd";
-import Card from "./Card";
-import { State } from '../Scripts/GlobalState';
+import React from "react";
+import { Droppable } from "react-beautiful-dnd";
+import { State } from "../Scripts/GlobalState";
+import { CardComponent } from "./CardComponent";
+import { Button } from "react-bootstrap";
+import AddCardModal from "./AddCardModal";
+
+const grid = 10;
+
+const getListStyle = (isDraggingOver: boolean) => ({
+  background: isDraggingOver ? "lightblue" : "lightgrey",
+  padding: grid,
+  width: 250,
+});
 
 export default function Column() {
-    let { state, setState, getItems, reorder, move, } = State.useContainer();
-
-    function onDragEnd(result: DropResult) {
-        const { source, destination } = result;
-
-        // dropped outside the list
-        if (!destination) {
-            return;
-        }
-        const sInd = +source.droppableId;
-        const dInd = +destination.droppableId;
-
-        if (sInd === dInd) {
-            const items = reorder(state[sInd], source.index, destination.index);
-            const newState = [...state];
-            newState[sInd] = items;
-            setState(newState);
-        } else {
-            const result = move(state[sInd], state[dInd], source, destination);
-            const newState = [...state];
-            newState[sInd] = result[sInd];
-            newState[dInd] = result[dInd];
-
-            setState(newState.filter((group) => group.length));
-        }
-    }
-
-    return (
-        <div>
-            <button
+  let {
+    state,
+    setState,
+    getItems,
+    cardModalVisible,
+    setCardModalVisible,
+  } = State.useContainer();
+  const addItemToColumn = (index: number) => {
+    const stateClone = Array.from(state);
+    stateClone[index].push(getItems(1)[0]);
+    setState(stateClone);
+  };
+  console.log(state);
+  return (
+    <>
+      {state.map((el, columnIndex) => (
+        <Droppable key={columnIndex} droppableId={`${columnIndex}`}>
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              style={getListStyle(snapshot.isDraggingOver)}
+              {...provided.droppableProps}
+            >
+              <h1>{columnIndex}</h1>
+              <Button
                 type="button"
                 onClick={() => {
-                    setState([...state, []]);
+                  addItemToColumn(columnIndex);
                 }}
-            >
-                Add new group
-      </button>
-            <button
-                type="button"
-                onClick={() => {
-                    setState([...state, getItems(1)]);
-                }}
-            >
+              >
                 Add new item
-      </button>
-            <div style={{ display: "flex" }}>
-                <DragDropContext onDragEnd={onDragEnd}>
-                    <Card></Card>
-                </DragDropContext>
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                className="btn-sm w-50"
+                onClick={() => {
+                  const newState = [...state];
+                  setState(
+                    newState.filter((column, index) => index !== columnIndex)
+                  );
+                }}
+              >
+                Delete Column
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                className="btn-sm w-50"
+                onClick={() => {
+                  setCardModalVisible(true);
+                }}
+              >
+                ads Column
+              </Button>
+              <AddCardModal
+                cardModalVisible={cardModalVisible}
+                setCardModalVisible={setCardModalVisible}
+              />
+              {el.map((item, rowIndex) => (
+                <CardComponent
+                  index={rowIndex}
+                  ind={columnIndex}
+                  card={item}
+                ></CardComponent>
+              ))}
+              {provided.placeholder}
             </div>
-        </div>
-    );
+          )}
+        </Droppable>
+      ))}
+    </>
+  );
 }
-
-// const rootElement = document.getElementById("root");
-// ReactDOM.render(<Column />, rootElement);

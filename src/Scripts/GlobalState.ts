@@ -1,15 +1,23 @@
-import React, { CSSProperties, useState } from "react";
-import { DraggableLocation, DraggingStyle, DropResult, NotDraggingStyle } from "react-beautiful-dnd";
+import { CSSProperties, useState } from "react";
+import { DraggableLocation, DraggingStyle, NotDraggingStyle } from "react-beautiful-dnd";
 import { createContainer } from "unstated-next";
 
- function GlobalState() {
+export type BoardCard = { id: string; content: string, title:string };
+export type Board = BoardCard[][];
+
+function GlobalState() {
+
     
+    // fake data generator
     const getItems = (count: number, offset = 0) =>
     Array.from({ length: count }, (v, k) => k).map((k) => ({
-        id: `item-${k + offset}-${new Date().getTime()}`,
+        id: `items-${k + offset}-${new Date().getTime()}`,
         content: `item ${k + offset}`,
+        title:'hihi',
     }));
 
+    
+    
 function reorder<T>(
     list: Array<T>,
     startIndex: number,
@@ -66,13 +74,12 @@ const getListStyle = (isDraggingOver: boolean) => ({
     width: 250,
 });
 
-type Card = { id: string; content: string };
 
-type Board = Card[][];
 // 
-const [state, setState] = useState<Board>([getItems(10), getItems(5, 10)]);
+const [state, setState] = useState<Board>([]);
+const [cardModalVisible, setCardModalVisible] = useState<boolean>(false);
 
-return{state, setState, getItemStyle, getListStyle, move, reorder, getItems}
+return{state, setState, getItemStyle, getListStyle, move, reorder, getItems, cardModalVisible, setCardModalVisible}
 }
 // const State = createContainer(GlobalState)
 export const State = createContainer(GlobalState)

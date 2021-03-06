@@ -1,12 +1,11 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
-import Navigation from '../src/Components/Navigation'
-import { State } from './Scripts/GlobalState';
+import React from "react";
+import "./App.css";
+import Navigation from "../src/Components/Navigation";
+import { State } from "./Scripts/GlobalState";
 
 function App() {
   return (
-    <div >
+    <div>
       <State.Provider>
         <Navigation />
       </State.Provider>
