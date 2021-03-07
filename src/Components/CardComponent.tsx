@@ -60,8 +60,8 @@ export const CardComponent: React.FC<ICardProps> = (props) => {
                   border: "none",
                 }}
               >
-                <Card.Title>{card.content}</Card.Title>
-                <Card.Text>I am a card that you can drag!</Card.Text>
+                <Card.Title>{card.title}</Card.Title>
+                <Card.Text>{card.comments}</Card.Text>
                 <Card.Body className="text-center p-0">
                   <Button
                     type="button"

@@ -42,6 +42,7 @@ export default function Board() {
       >
         Add new group
       </Button>
+
       <div style={{ display: "flex" }}>
         <DragDropContext onDragEnd={onDragEnd}>
           <Column></Column>

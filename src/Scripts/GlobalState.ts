@@ -2,18 +2,22 @@ import { CSSProperties, useState } from "react";
 import { DraggableLocation, DraggingStyle, NotDraggingStyle } from "react-beautiful-dnd";
 import { createContainer } from "unstated-next";
 
-export type BoardCard = { id: string; content: string, title:string };
+export type BoardCard = { id: string; comments: string, title:string };
 export type Board = BoardCard[][];
 
 function GlobalState() {
-
-    
     // fake data generator
-    const getItems = (count: number, offset = 0) =>
+    // const getItems = (count: number, offset = 0) =>
+    // Array.from({ length: count }, (v, k) => k).map((k) => ({
+    //     id: `items-${k + offset}-${new Date().getTime()}`,
+    //     comments: `item ${k + offset}`,
+    //     title:'hihi',
+    // }));
+    const getItems = (count: number, item: BoardCard) =>
     Array.from({ length: count }, (v, k) => k).map((k) => ({
-        id: `items-${k + offset}-${new Date().getTime()}`,
-        content: `item ${k + offset}`,
-        title:'hihi',
+        id: item.id,
+        comments: item.comments,
+        title:item.title,
     }));
 
     

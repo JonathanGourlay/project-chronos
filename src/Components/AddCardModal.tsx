@@ -5,6 +5,7 @@ import { ICardProps } from "./CardComponent";
 
 interface IHandlerProps {
   //   boardCard: BoardCard;
+  columnIndex: number;
   cardModalVisible: boolean | undefined;
   setCardModalVisible: (show: boolean) => void;
 }
@@ -15,8 +16,31 @@ interface IBoardCardProps {
   comments: string;
 }
 const AddCardModal = (props: IHandlerProps) => {
+  // console.log(props.columnIndex);
   //   let modalVisible: boolean | undefined = true;
-  const [formState, setFormState] = React.useState<BoardCard>();
+  const [formState, setFormState] = React.useState<BoardCard>({
+    id: "change me",
+    comments: "change me",
+    title: "change me",
+  });
+
+  let {
+    state,
+    setState,
+    reorder,
+    move,
+    getItems,
+    setCardModalVisible,
+    cardModalVisible,
+  } = State.useContainer();
+
+  const addItemToColumn = () => {
+    const stateClone = Array.from(state);
+    stateClone[props.columnIndex].push(getItems(1, formState)[0]);
+    setState(stateClone);
+  };
+
+  // console.log(state.length);
 
   return (
     <>
@@ -26,18 +50,46 @@ const AddCardModal = (props: IHandlerProps) => {
         </Modal.Header>
 
         <Modal.Body>
-          {/* <Form onSubmit={() => {}}>
+          <Form
+            onSubmit={(e) => {
+              // API Create Call - remove prevent default when api call in place
+              e.preventDefault();
+              addItemToColumn();
+              setCardModalVisible(false);
+            }}
+          >
+            <Form.Group controlId="formBasicID">
+              <Form.Control
+                type="number"
+                value={
+                  state[props.columnIndex] ? state[props.columnIndex].length : 0
+                }
+                disabled={true}
+              />
+            </Form.Group>
             <Form.Group controlId="formBasicName">
               <Form.Control
                 required={true}
                 type="name"
                 placeholder="Card Name"
                 onChange={(i) => {
-                    const newState = formState??  {
-                     }<BoardCard>
-                    newState.card.title = i.target.value;
-
-                    setFormState(...formState formState?.card.title = i.target.value;)
+                  const newState = formState;
+                  // const newState = formState
+                  newState.title = i.target.value;
+                  setFormState(newState);
+                }}
+              />
+            </Form.Group>
+            <Form.Group controlId="formBasicName">
+              <Form.Control
+                required={true}
+                type="comments"
+                placeholder="Comments"
+                onChange={(i) => {
+                  const newState = formState;
+                  // const newState = formState
+                  newState.comments = i.target.value;
+                  setFormState(newState);
                 }}
               />
             </Form.Group>
@@ -45,7 +97,7 @@ const AddCardModal = (props: IHandlerProps) => {
             <Button variant="primary" type="submit">
               Submit
             </Button>
-          </Form> */}
+          </Form>
         </Modal.Body>
 
         <Modal.Footer>

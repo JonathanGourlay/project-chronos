@@ -14,6 +14,7 @@ const getListStyle = (isDraggingOver: boolean) => ({
 });
 
 export default function Column() {
+  const [columnState, setColumnState] = React.useState<number>(0);
   let {
     state,
     setState,
@@ -21,12 +22,7 @@ export default function Column() {
     cardModalVisible,
     setCardModalVisible,
   } = State.useContainer();
-  const addItemToColumn = (index: number) => {
-    const stateClone = Array.from(state);
-    stateClone[index].push(getItems(1)[0]);
-    setState(stateClone);
-  };
-  console.log(state);
+
   return (
     <>
       {state.map((el, columnIndex) => (
@@ -38,14 +34,6 @@ export default function Column() {
               {...provided.droppableProps}
             >
               <h1>{columnIndex}</h1>
-              <Button
-                type="button"
-                onClick={() => {
-                  addItemToColumn(columnIndex);
-                }}
-              >
-                Add new item
-              </Button>
               <Button
                 type="button"
                 variant="danger"
@@ -64,12 +52,15 @@ export default function Column() {
                 variant="danger"
                 className="btn-sm w-50"
                 onClick={() => {
+                  console.log(columnIndex);
+                  setColumnState(columnIndex);
                   setCardModalVisible(true);
                 }}
               >
-                ads Column
+                add card
               </Button>
               <AddCardModal
+                columnIndex={columnState}
                 cardModalVisible={cardModalVisible}
                 setCardModalVisible={setCardModalVisible}
               />
