@@ -1,9 +1,11 @@
-import Board from "./Board";
+// import Board from "./Board";
+import { KanbanBoard } from "./KanBanTemp";
 
 export default function ProjectsPage() {
   return (
     <div>
-      <Board />
+      {/* <Board /> */}
+      <KanbanBoard></KanbanBoard>
     </div>
   );
 }

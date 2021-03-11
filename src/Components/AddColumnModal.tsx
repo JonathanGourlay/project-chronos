@@ -3,79 +3,67 @@ import { Button, Modal, Form } from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
 // import { State } from "../Scripts/GlobalState";
 
-import { BoardCard } from "./KanBanTemp";
+import { Column } from "./KanBanTemp";
 
-// Modal Props
 interface IHandlerProps {
+  setColumnModalVisible: (show: boolean) => void;
+  columnModalVisible: boolean | undefined;
+  columnId: string;
   columnIndex: number;
-  cardModalVisible: boolean | undefined;
-  setCardModalVisible: (show: boolean) => void;
-  addItemToColumn: (index: number, form: BoardCard) => void;
-  cardId: string;
-  // formState: BoardCard;
-  // setFormState: React.Dispatch<React.SetStateAction<BoardCard>>;
   setColumnState: React.Dispatch<React.SetStateAction<number>>;
 }
 
 // Add Card Modal  Component
-const AddCardModal = (props: IHandlerProps) => {
+const AddColumnModal = (props: IHandlerProps) => {
   // Global State Variables
   // let { state, setState, getItems, setCardModalVisible } = State.useContainer();
   const {
-    // setFormState,
-    cardId,
-    // formState,
-    addItemToColumn,
-    setCardModalVisible,
-    columnIndex,
+    columnModalVisible,
+    setColumnModalVisible,
     setColumnState,
+    columnIndex,
+    columnId,
   } = props;
-  const [formState, setFormState] = React.useState<BoardCard>({
+
+  const [formState, setFormState] = React.useState<Column>({
     id: "",
-    comments: "",
     title: "",
+    cards: [],
   });
+
   return (
     <>
-      <Modal show={props.cardModalVisible}>
+      <Modal show={columnModalVisible}>
         <Modal.Header>
           <Modal.Title>Add Card</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
           <Form
-            // onLoad={() => {
-            //   // Clone state to modify
-            //   const newState = formState;
-            //   // Set stateClone.id to cardId
-            //   newState.id = cardId;
-            //   // Set formState to new modified state
-            //   setFormState(newState);
-            // }}
             onSubmit={(e) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
               // Clone state to modify
               const newState = formState;
               // Set stateClone.id to cardId
-              newState.id = cardId;
+              newState.id = columnId;
               // Set formState to new modified state
               setFormState(newState);
               // Run add Item function
-              addItemToColumn(columnIndex, formState);
-              setColumnState(0);
+              //   addItemToColumn(columnIndex, formState);
+              //   setColumnState(0);
               // Set modalVisible to false
-              setCardModalVisible(false);
+              //   setCardModalVisible(false);
             }}
           >
-            <Form.Group controlId={cardId}>
-              <Form.Control type="string" value={cardId} disabled={true} />
+            <Form.Group controlId={columnId}>
+              <Form.Control type="string" value={columnId} disabled={true} />
             </Form.Group>
-            <Form.Group controlId={`formBasicName ${cardId}`}>
+            <Form.Group controlId={`formBasicName ${columnId}`}>
               <Form.Control
                 required={true}
                 type="name"
-                placeholder="Card Name"
+                placeholder="Column Name"
                 onChange={(i) => {
                   // Clone state to modify
                   const newState = formState;
@@ -85,20 +73,6 @@ const AddCardModal = (props: IHandlerProps) => {
                 }}
               />
             </Form.Group>
-            <Form.Group controlId={`formBasicComments ${cardId}`}>
-              <Form.Control
-                required={true}
-                type="comments"
-                placeholder="Comments"
-                onChange={(i) => {
-                  const newState = formState;
-                  // const newState = formState
-                  newState.comments = i.target.value;
-                  setFormState(newState);
-                }}
-              />
-            </Form.Group>
-
             <Button variant="primary" type="submit">
               Submit
             </Button>
@@ -109,7 +83,7 @@ const AddCardModal = (props: IHandlerProps) => {
           <Button
             variant="secondary"
             onClick={() => {
-              props.setCardModalVisible(false);
+              setColumnModalVisible(false);
             }}
           >
             Close
@@ -119,4 +93,3 @@ const AddCardModal = (props: IHandlerProps) => {
     </>
   );
 };
-export default AddCardModal;
