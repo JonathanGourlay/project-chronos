@@ -3,14 +3,14 @@ import { Button, Modal, Form } from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
 // import { State } from "../Scripts/GlobalState";
 
-import { Column } from "./KanBanTemp";
+import { Column } from "./KanBanBoard";
 
 interface IHandlerProps {
   setColumnModalVisible: (show: boolean) => void;
   columnModalVisible: boolean | undefined;
-  columnId: string;
+  addColumn: (index: number, form: Column) => void;
   columnIndex: number;
-  setColumnState: React.Dispatch<React.SetStateAction<number>>;
+  // setColumnState: React.Dispatch<React.SetStateAction<number>>;
 }
 
 // Add Card Modal  Component
@@ -20,9 +20,8 @@ const AddColumnModal = (props: IHandlerProps) => {
   const {
     columnModalVisible,
     setColumnModalVisible,
-    setColumnState,
     columnIndex,
-    columnId,
+    addColumn,
   } = props;
 
   const [formState, setFormState] = React.useState<Column>({
@@ -35,7 +34,7 @@ const AddColumnModal = (props: IHandlerProps) => {
     <>
       <Modal show={columnModalVisible}>
         <Modal.Header>
-          <Modal.Title>Add Card</Modal.Title>
+          <Modal.Title>Add Column</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -46,20 +45,21 @@ const AddColumnModal = (props: IHandlerProps) => {
               // Clone state to modify
               const newState = formState;
               // Set stateClone.id to cardId
-              newState.id = columnId;
+              newState.id = `${columnIndex}`;
               // Set formState to new modified state
               setFormState(newState);
               // Run add Item function
               //   addItemToColumn(columnIndex, formState);
+              addColumn(columnIndex, formState);
               //   setColumnState(0);
               // Set modalVisible to false
-              //   setCardModalVisible(false);
+              setColumnModalVisible(false);
             }}
           >
-            <Form.Group controlId={columnId}>
-              <Form.Control type="string" value={columnId} disabled={true} />
+            <Form.Group controlId={`${columnIndex}`}>
+              <Form.Control type="string" value={columnIndex} disabled={true} />
             </Form.Group>
-            <Form.Group controlId={`formBasicName ${columnId}`}>
+            <Form.Group controlId={`formBasicName ${columnIndex}`}>
               <Form.Control
                 required={true}
                 type="name"
@@ -93,3 +93,4 @@ const AddColumnModal = (props: IHandlerProps) => {
     </>
   );
 };
+export default AddColumnModal;

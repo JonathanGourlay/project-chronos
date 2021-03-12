@@ -2,8 +2,8 @@ import React from "react";
 import { Button, Modal, Form } from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
 // import { State } from "../Scripts/GlobalState";
-
-import { BoardCard } from "./KanBanTemp";
+import { useSetState } from "react-use";
+import { BoardCard } from "./KanBanBoard";
 
 // Modal Props
 interface IHandlerProps {
@@ -14,7 +14,7 @@ interface IHandlerProps {
   cardId: string;
   // formState: BoardCard;
   // setFormState: React.Dispatch<React.SetStateAction<BoardCard>>;
-  setColumnState: React.Dispatch<React.SetStateAction<number>>;
+  setColumnIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
 // Add Card Modal  Component
@@ -28,13 +28,15 @@ const AddCardModal = (props: IHandlerProps) => {
     addItemToColumn,
     setCardModalVisible,
     columnIndex,
-    setColumnState,
+    setColumnIndex,
   } = props;
-  const [formState, setFormState] = React.useState<BoardCard>({
+  // console.log(cardId);
+  const [formState, setFormState] = useSetState<BoardCard>({
     id: "",
     comments: "",
     title: "",
   });
+  // console.log(formState);
   return (
     <>
       <Modal show={props.cardModalVisible}>
@@ -55,15 +57,17 @@ const AddCardModal = (props: IHandlerProps) => {
             onSubmit={(e) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
-              // Clone state to modify
-              const newState = formState;
-              // Set stateClone.id to cardId
-              newState.id = cardId;
               // Set formState to new modified state
+              const newState = formState;
+              // const newState = formState
+              newState.id = cardId;
               setFormState(newState);
+              // console.log(cardId);
+              // setFormState({ id: cardId });
+              // console.log(formState);
               // Run add Item function
               addItemToColumn(columnIndex, formState);
-              setColumnState(0);
+              // setColumnState(0);
               // Set modalVisible to false
               setCardModalVisible(false);
             }}
@@ -107,9 +111,10 @@ const AddCardModal = (props: IHandlerProps) => {
 
         <Modal.Footer>
           <Button
+            type="button"
             variant="secondary"
             onClick={() => {
-              props.setCardModalVisible(false);
+              setCardModalVisible(false);
             }}
           >
             Close

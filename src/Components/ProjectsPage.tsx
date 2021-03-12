@@ -1,5 +1,5 @@
 // import Board from "./Board";
-import { KanbanBoard } from "./KanBanTemp";
+import { KanbanBoard } from "./KanBanBoard";
 
 export default function ProjectsPage() {
   return (
