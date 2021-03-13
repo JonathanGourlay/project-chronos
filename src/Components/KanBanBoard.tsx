@@ -84,7 +84,6 @@ const getListStyle = (isDraggingOver: boolean): CSSProperties => ({
 export const KanbanBoard = () => {
   // let { setCardModalVisible, cardModalVisible } = State.useContainer();
   // Creating formState - setting default values
-
   const [cardModalVisible, setCardModalVisible] = useState<boolean>(false);
   const [columnModalVisible, setColumnModalVisible] = useState<boolean>(false);
   const [columnIndex, setColumnIndex] = React.useState<number>(0);
