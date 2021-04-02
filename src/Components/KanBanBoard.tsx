@@ -12,6 +12,7 @@ import { Button, Card } from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
 import AddCardModal from "./AddCardModal";
 import AddColumnModal from "./AddColumnModal";
+import apiClient from "../API/client/";
 
 export type BoardCard = { id: string; comments: string; title: string };
 export type Column = { id: string; title: string; cards: Array<BoardCard> };
@@ -82,27 +83,21 @@ const getListStyle = (isDraggingOver: boolean): CSSProperties => ({
 });
 
 export const KanbanBoard = () => {
-  // let { setCardModalVisible, cardModalVisible } = State.useContainer();
   // Creating formState - setting default values
   const [cardModalVisible, setCardModalVisible] = useState<boolean>(false);
   const [columnModalVisible, setColumnModalVisible] = useState<boolean>(false);
   const [columnIndex, setColumnIndex] = React.useState<number>(0);
-  //   const [columnState, setColumnState] = React.useState<Column>();
   const [state, setState] = useState<Board>([]);
-
-  React.useEffect(() => {
-    // console.log("change");
-  }, [state]);
+  const getProjects = async () => {
+    // const projects = await apiClient.getProject(1);
+    // console.log(projects);
+  };
+  // getProjects();
+  React.useEffect(() => {}, [state]);
 
   const addItemToColumn = (index: number, form: BoardCard) => {
     const newState = [...state];
-    // const newState = Array.from(state);
-    // console.log(form);
-    // newState[index].push(form);
-    // console.log(Number(state[columnIndex].length - 1));
-
     newState[index][Number(state[columnIndex].length - 1)].cards.push(form);
-    // setState(newState);
   };
   const addColumn = (index: number, form: Column) => {
     setState([

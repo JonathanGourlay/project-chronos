@@ -1,5 +1,5 @@
 // import Board from "./Board";
-import { KanbanBoard } from "./KanBanBoard";
+import { KanbanBoard } from "../Components/KanBanBoard";
 
 export default function ProjectsPage() {
   return (

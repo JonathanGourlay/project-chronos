@@ -1,7 +1,8 @@
 import React from "react";
 import { Navbar } from "react-bootstrap";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
-import ProjectsPage from "./ProjectsPage";
+import ProjectsPage from "../Pages/ProjectsPage";
+import WeekPage from "../Pages/WeekPage";
 
 const Navigation = () => {
   return (
@@ -28,6 +29,7 @@ const Navigation = () => {
         </Route>
         <Route path="/dashboard">dashboard</Route>
         <Route path="/week">Week Page Comp</Route>
+        <WeekPage />
         <Route path="/day">Day Page Comp</Route>
       </Switch>
     </Router>
