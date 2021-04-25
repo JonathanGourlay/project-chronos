@@ -22,7 +22,12 @@ export interface IClient {
      * @param body (optional) 
      * @return Success
      */
-    createProject(body: string[] | undefined): Promise<number>;
+    checkLogin(body: LoginObject | undefined): Promise<UserDto>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    createProject(body: ProjectDto | undefined): Promise<number>;
     /**
      * @param body (optional) 
      * @return Success
@@ -202,7 +207,56 @@ export class Client implements IClient {
      * @param body (optional) 
      * @return Success
      */
-    createProject(body: string[] | undefined): Promise<number> {
+    checkLogin(body: LoginObject | undefined): Promise<UserDto> {
+        let url_ = this.baseUrl + "/Project/CheckLogin";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCheckLogin(_response);
+        });
+    }
+
+    protected processCheckLogin(response: Response): Promise<UserDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UserDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UserDto>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    createProject(body: ProjectDto | undefined): Promise<number> {
         let url_ = this.baseUrl + "/Project/CreateProject";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -797,9 +851,71 @@ export class Client implements IClient {
     }
 }
 
+export class ColumnDto implements IColumnDto {
+    columnId?: number;
+    columnName?: string | undefined;
+    pointsTotal?: number;
+    addedPoints?: number;
+    tasks?: TaskDto[] | undefined;
+
+    constructor(data?: IColumnDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.columnId = _data["columnId"];
+            this.columnName = _data["columnName"];
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            if (Array.isArray(_data["tasks"])) {
+                this.tasks = [] as any;
+                for (let item of _data["tasks"])
+                    this.tasks!.push(TaskDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ColumnDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ColumnDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["columnId"] = this.columnId;
+        data["columnName"] = this.columnName;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        if (Array.isArray(this.tasks)) {
+            data["tasks"] = [];
+            for (let item of this.tasks)
+                data["tasks"].push(item.toJSON());
+        }
+        return data; 
+    }
+}
+
+export interface IColumnDto {
+    columnId?: number;
+    columnName?: string | undefined;
+    pointsTotal?: number;
+    addedPoints?: number;
+    tasks?: TaskDto[] | undefined;
+}
+
 export class ColumnObject implements IColumnObject {
     columnId?: number;
     columnName?: string | undefined;
+    pointsTotal?: number;
+    addedPoints?: number;
     tasks?: TaskObject[] | undefined;
 
     constructor(data?: IColumnObject) {
@@ -815,6 +931,8 @@ export class ColumnObject implements IColumnObject {
         if (_data) {
             this.columnId = _data["columnId"];
             this.columnName = _data["columnName"];
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
             if (Array.isArray(_data["tasks"])) {
                 this.tasks = [] as any;
                 for (let item of _data["tasks"])
@@ -834,6 +952,8 @@ export class ColumnObject implements IColumnObject {
         data = typeof data === 'object' ? data : {};
         data["columnId"] = this.columnId;
         data["columnName"] = this.columnName;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
         if (Array.isArray(this.tasks)) {
             data["tasks"] = [];
             for (let item of this.tasks)
@@ -846,12 +966,16 @@ export class ColumnObject implements IColumnObject {
 export interface IColumnObject {
     columnId?: number;
     columnName?: string | undefined;
+    pointsTotal?: number;
+    addedPoints?: number;
     tasks?: TaskObject[] | undefined;
 }
 
 export class CreateColumn implements ICreateColumn {
     columnName?: string | undefined;
     projectId?: number;
+    pointsTotal?: number;
+    addedPointsTotal?: number;
 
     constructor(data?: ICreateColumn) {
         if (data) {
@@ -866,6 +990,8 @@ export class CreateColumn implements ICreateColumn {
         if (_data) {
             this.columnName = _data["columnName"];
             this.projectId = _data["projectId"];
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPointsTotal = _data["addedPointsTotal"];
         }
     }
 
@@ -880,6 +1006,8 @@ export class CreateColumn implements ICreateColumn {
         data = typeof data === 'object' ? data : {};
         data["columnName"] = this.columnName;
         data["projectId"] = this.projectId;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPointsTotal"] = this.addedPointsTotal;
         return data; 
     }
 }
@@ -887,11 +1015,23 @@ export class CreateColumn implements ICreateColumn {
 export interface ICreateColumn {
     columnName?: string | undefined;
     projectId?: number;
+    pointsTotal?: number;
+    addedPointsTotal?: number;
 }
 
 export class CreateTask implements ICreateTask {
     taskName?: string | undefined;
     comments?: string | undefined;
+    pointsTotal?: number;
+    addedPointsTotal?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
     columnId?: number;
 
     constructor(data?: ICreateTask) {
@@ -907,6 +1047,16 @@ export class CreateTask implements ICreateTask {
         if (_data) {
             this.taskName = _data["taskName"];
             this.comments = _data["comments"];
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPointsTotal = _data["addedPointsTotal"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.taskDone = _data["taskDone"];
+            this.taskDeleted = _data["taskDeleted"];
+            this.taskArchived = _data["taskArchived"];
+            this.extensionReason = _data["extensionReason"];
+            this.addedReason = _data["addedReason"];
             this.columnId = _data["columnId"];
         }
     }
@@ -922,6 +1072,16 @@ export class CreateTask implements ICreateTask {
         data = typeof data === 'object' ? data : {};
         data["taskName"] = this.taskName;
         data["comments"] = this.comments;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPointsTotal"] = this.addedPointsTotal;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["taskDone"] = this.taskDone;
+        data["taskDeleted"] = this.taskDeleted;
+        data["taskArchived"] = this.taskArchived;
+        data["extensionReason"] = this.extensionReason;
+        data["addedReason"] = this.addedReason;
         data["columnId"] = this.columnId;
         return data; 
     }
@@ -930,6 +1090,16 @@ export class CreateTask implements ICreateTask {
 export interface ICreateTask {
     taskName?: string | undefined;
     comments?: string | undefined;
+    pointsTotal?: number;
+    addedPointsTotal?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
     columnId?: number;
 }
 
@@ -937,6 +1107,8 @@ export class CreateTimeLog implements ICreateTimeLog {
     startTime?: Date;
     endTime?: Date;
     totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
     userId?: number;
     taskId?: number;
 
@@ -954,6 +1126,8 @@ export class CreateTimeLog implements ICreateTimeLog {
             this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
             this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
             this.totalTime = _data["totalTime"];
+            this.billable = _data["billable"];
+            this.archived = _data["archived"];
             this.userId = _data["userId"];
             this.taskId = _data["taskId"];
         }
@@ -971,6 +1145,8 @@ export class CreateTimeLog implements ICreateTimeLog {
         data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
         data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
         data["totalTime"] = this.totalTime;
+        data["billable"] = this.billable;
+        data["archived"] = this.archived;
         data["userId"] = this.userId;
         data["taskId"] = this.taskId;
         return data; 
@@ -981,6 +1157,8 @@ export interface ICreateTimeLog {
     startTime?: Date;
     endTime?: Date;
     totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
     userId?: number;
     taskId?: number;
 }
@@ -988,6 +1166,10 @@ export interface ICreateTimeLog {
 export class CreateUser implements ICreateUser {
     userName?: string | undefined;
     role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
 
     constructor(data?: ICreateUser) {
         if (data) {
@@ -1002,6 +1184,10 @@ export class CreateUser implements ICreateUser {
         if (_data) {
             this.userName = _data["userName"];
             this.role = _data["role"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+            this.accessToken = _data["accessToken"];
+            this.archived = _data["archived"];
         }
     }
 
@@ -1016,6 +1202,10 @@ export class CreateUser implements ICreateUser {
         data = typeof data === 'object' ? data : {};
         data["userName"] = this.userName;
         data["role"] = this.role;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        data["accessToken"] = this.accessToken;
+        data["archived"] = this.archived;
         return data; 
     }
 }
@@ -1023,6 +1213,50 @@ export class CreateUser implements ICreateUser {
 export interface ICreateUser {
     userName?: string | undefined;
     role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
+}
+
+export class LoginObject implements ILoginObject {
+    email?: string | undefined;
+    password?: string | undefined;
+
+    constructor(data?: ILoginObject) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.email = _data["email"];
+            this.password = _data["password"];
+        }
+    }
+
+    static fromJS(data: any): LoginObject {
+        data = typeof data === 'object' ? data : {};
+        let result = new LoginObject();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["email"] = this.email;
+        data["password"] = this.password;
+        return data; 
+    }
+}
+
+export interface ILoginObject {
+    email?: string | undefined;
+    password?: string | undefined;
 }
 
 export class ProblemDetails implements IProblemDetails {
@@ -1077,9 +1311,113 @@ export interface IProblemDetails {
     instance?: string | undefined;
 }
 
+export class ProjectDto implements IProjectDto {
+    projectId?: number;
+    projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectCompleated?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
+    users?: UserDto[] | undefined;
+    columns?: ColumnDto[] | undefined;
+
+    constructor(data?: IProjectDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.projectId = _data["projectId"];
+            this.projectName = _data["projectName"];
+            this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
+            this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            this.projectCompleated = _data["projectCompleated"];
+            this.projectArchived = _data["projectArchived"];
+            this.timeIncrement = _data["timeIncrement"];
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(UserDto.fromJS(item));
+            }
+            if (Array.isArray(_data["columns"])) {
+                this.columns = [] as any;
+                for (let item of _data["columns"])
+                    this.columns!.push(ColumnDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ProjectDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProjectDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["projectId"] = this.projectId;
+        data["projectName"] = this.projectName;
+        data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
+        data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        data["projectCompleated"] = this.projectCompleated;
+        data["projectArchived"] = this.projectArchived;
+        data["timeIncrement"] = this.timeIncrement;
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        if (Array.isArray(this.columns)) {
+            data["columns"] = [];
+            for (let item of this.columns)
+                data["columns"].push(item.toJSON());
+        }
+        return data; 
+    }
+}
+
+export interface IProjectDto {
+    projectId?: number;
+    projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectCompleated?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
+    users?: UserDto[] | undefined;
+    columns?: ColumnDto[] | undefined;
+}
+
 export class ProjectObject implements IProjectObject {
     projectId?: number;
     projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectCompleated?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
     users?: UserObject[] | undefined;
     columns?: ColumnObject[] | undefined;
 
@@ -1096,6 +1434,14 @@ export class ProjectObject implements IProjectObject {
         if (_data) {
             this.projectId = _data["projectId"];
             this.projectName = _data["projectName"];
+            this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
+            this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            this.projectCompleated = _data["projectCompleated"];
+            this.projectArchived = _data["projectArchived"];
+            this.timeIncrement = _data["timeIncrement"];
             if (Array.isArray(_data["users"])) {
                 this.users = [] as any;
                 for (let item of _data["users"])
@@ -1120,6 +1466,14 @@ export class ProjectObject implements IProjectObject {
         data = typeof data === 'object' ? data : {};
         data["projectId"] = this.projectId;
         data["projectName"] = this.projectName;
+        data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
+        data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        data["projectCompleated"] = this.projectCompleated;
+        data["projectArchived"] = this.projectArchived;
+        data["timeIncrement"] = this.timeIncrement;
         if (Array.isArray(this.users)) {
             data["users"] = [];
             for (let item of this.users)
@@ -1137,14 +1491,140 @@ export class ProjectObject implements IProjectObject {
 export interface IProjectObject {
     projectId?: number;
     projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectCompleated?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
     users?: UserObject[] | undefined;
     columns?: ColumnObject[] | undefined;
+}
+
+export class TaskDto implements ITaskDto {
+    taskId?: number;
+    taskName?: string | undefined;
+    comments?: string | undefined;
+    points?: number;
+    addedPoints?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
+    timelogs?: TimeLogDto[] | undefined;
+    users?: UserDto[] | undefined;
+
+    constructor(data?: ITaskDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.taskId = _data["taskId"];
+            this.taskName = _data["taskName"];
+            this.comments = _data["comments"];
+            this.points = _data["points"];
+            this.addedPoints = _data["addedPoints"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.taskDone = _data["taskDone"];
+            this.taskDeleted = _data["taskDeleted"];
+            this.taskArchived = _data["taskArchived"];
+            this.extensionReason = _data["extensionReason"];
+            this.addedReason = _data["addedReason"];
+            if (Array.isArray(_data["timelogs"])) {
+                this.timelogs = [] as any;
+                for (let item of _data["timelogs"])
+                    this.timelogs!.push(TimeLogDto.fromJS(item));
+            }
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(UserDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TaskDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TaskDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["taskId"] = this.taskId;
+        data["taskName"] = this.taskName;
+        data["comments"] = this.comments;
+        data["points"] = this.points;
+        data["addedPoints"] = this.addedPoints;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["taskDone"] = this.taskDone;
+        data["taskDeleted"] = this.taskDeleted;
+        data["taskArchived"] = this.taskArchived;
+        data["extensionReason"] = this.extensionReason;
+        data["addedReason"] = this.addedReason;
+        if (Array.isArray(this.timelogs)) {
+            data["timelogs"] = [];
+            for (let item of this.timelogs)
+                data["timelogs"].push(item.toJSON());
+        }
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        return data; 
+    }
+}
+
+export interface ITaskDto {
+    taskId?: number;
+    taskName?: string | undefined;
+    comments?: string | undefined;
+    points?: number;
+    addedPoints?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
+    timelogs?: TimeLogDto[] | undefined;
+    users?: UserDto[] | undefined;
 }
 
 export class TaskObject implements ITaskObject {
     taskId?: number;
     taskName?: string | undefined;
     comments?: string | undefined;
+    points?: number;
+    addedPoints?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
     timelogs?: TimeLogObject[] | undefined;
     users?: UserObject[] | undefined;
 
@@ -1162,6 +1642,16 @@ export class TaskObject implements ITaskObject {
             this.taskId = _data["taskId"];
             this.taskName = _data["taskName"];
             this.comments = _data["comments"];
+            this.points = _data["points"];
+            this.addedPoints = _data["addedPoints"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.taskDone = _data["taskDone"];
+            this.taskDeleted = _data["taskDeleted"];
+            this.taskArchived = _data["taskArchived"];
+            this.extensionReason = _data["extensionReason"];
+            this.addedReason = _data["addedReason"];
             if (Array.isArray(_data["timelogs"])) {
                 this.timelogs = [] as any;
                 for (let item of _data["timelogs"])
@@ -1187,6 +1677,16 @@ export class TaskObject implements ITaskObject {
         data["taskId"] = this.taskId;
         data["taskName"] = this.taskName;
         data["comments"] = this.comments;
+        data["points"] = this.points;
+        data["addedPoints"] = this.addedPoints;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["taskDone"] = this.taskDone;
+        data["taskDeleted"] = this.taskDeleted;
+        data["taskArchived"] = this.taskArchived;
+        data["extensionReason"] = this.extensionReason;
+        data["addedReason"] = this.addedReason;
         if (Array.isArray(this.timelogs)) {
             data["timelogs"] = [];
             for (let item of this.timelogs)
@@ -1205,8 +1705,74 @@ export interface ITaskObject {
     taskId?: number;
     taskName?: string | undefined;
     comments?: string | undefined;
+    points?: number;
+    addedPoints?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
     timelogs?: TimeLogObject[] | undefined;
     users?: UserObject[] | undefined;
+}
+
+export class TimeLogDto implements ITimeLogDto {
+    timeLogId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
+
+    constructor(data?: ITimeLogDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.timeLogId = _data["timeLogId"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.totalTime = _data["totalTime"];
+            this.billable = _data["billable"];
+            this.archived = _data["archived"];
+        }
+    }
+
+    static fromJS(data: any): TimeLogDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TimeLogDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["timeLogId"] = this.timeLogId;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["totalTime"] = this.totalTime;
+        data["billable"] = this.billable;
+        data["archived"] = this.archived;
+        return data; 
+    }
+}
+
+export interface ITimeLogDto {
+    timeLogId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
 }
 
 export class TimeLogObject implements ITimeLogObject {
@@ -1214,6 +1780,8 @@ export class TimeLogObject implements ITimeLogObject {
     startTime?: Date;
     endTime?: Date;
     totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
 
     constructor(data?: ITimeLogObject) {
         if (data) {
@@ -1230,6 +1798,8 @@ export class TimeLogObject implements ITimeLogObject {
             this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
             this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
             this.totalTime = _data["totalTime"];
+            this.billable = _data["billable"];
+            this.archived = _data["archived"];
         }
     }
 
@@ -1246,6 +1816,8 @@ export class TimeLogObject implements ITimeLogObject {
         data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
         data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
         data["totalTime"] = this.totalTime;
+        data["billable"] = this.billable;
+        data["archived"] = this.archived;
         return data; 
     }
 }
@@ -1255,10 +1827,14 @@ export interface ITimeLogObject {
     startTime?: Date;
     endTime?: Date;
     totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
 }
 
 export class UpdateColumn implements IUpdateColumn {
     columnName?: string | undefined;
+    pointsTotal?: number;
+    addedPointsTotal?: number;
     columnId?: number;
 
     constructor(data?: IUpdateColumn) {
@@ -1273,6 +1849,8 @@ export class UpdateColumn implements IUpdateColumn {
     init(_data?: any) {
         if (_data) {
             this.columnName = _data["columnName"];
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPointsTotal = _data["addedPointsTotal"];
             this.columnId = _data["columnId"];
         }
     }
@@ -1287,6 +1865,8 @@ export class UpdateColumn implements IUpdateColumn {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["columnName"] = this.columnName;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPointsTotal"] = this.addedPointsTotal;
         data["columnId"] = this.columnId;
         return data; 
     }
@@ -1294,12 +1874,22 @@ export class UpdateColumn implements IUpdateColumn {
 
 export interface IUpdateColumn {
     columnName?: string | undefined;
+    pointsTotal?: number;
+    addedPointsTotal?: number;
     columnId?: number;
 }
 
 export class UpdateProject implements IUpdateProject {
     projectName?: string | undefined;
     projectId?: number;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectComplete?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
 
     constructor(data?: IUpdateProject) {
         if (data) {
@@ -1314,6 +1904,14 @@ export class UpdateProject implements IUpdateProject {
         if (_data) {
             this.projectName = _data["projectName"];
             this.projectId = _data["projectId"];
+            this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
+            this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            this.projectComplete = _data["projectComplete"];
+            this.projectArchived = _data["projectArchived"];
+            this.timeIncrement = _data["timeIncrement"];
         }
     }
 
@@ -1328,6 +1926,14 @@ export class UpdateProject implements IUpdateProject {
         data = typeof data === 'object' ? data : {};
         data["projectName"] = this.projectName;
         data["projectId"] = this.projectId;
+        data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
+        data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        data["projectComplete"] = this.projectComplete;
+        data["projectArchived"] = this.projectArchived;
+        data["timeIncrement"] = this.timeIncrement;
         return data; 
     }
 }
@@ -1335,12 +1941,31 @@ export class UpdateProject implements IUpdateProject {
 export interface IUpdateProject {
     projectName?: string | undefined;
     projectId?: number;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectComplete?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
 }
 
 export class UpdateTask implements IUpdateTask {
     taskId?: number;
+    columnId?: number;
     taskName?: string | undefined;
     comments?: string | undefined;
+    pointsTotal?: number;
+    addedPoints?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
 
     constructor(data?: IUpdateTask) {
         if (data) {
@@ -1354,8 +1979,19 @@ export class UpdateTask implements IUpdateTask {
     init(_data?: any) {
         if (_data) {
             this.taskId = _data["taskId"];
+            this.columnId = _data["columnId"];
             this.taskName = _data["taskName"];
             this.comments = _data["comments"];
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.taskDone = _data["taskDone"];
+            this.taskDeleted = _data["taskDeleted"];
+            this.taskArchived = _data["taskArchived"];
+            this.extensionReason = _data["extensionReason"];
+            this.addedReason = _data["addedReason"];
         }
     }
 
@@ -1369,22 +2005,46 @@ export class UpdateTask implements IUpdateTask {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["taskId"] = this.taskId;
+        data["columnId"] = this.columnId;
         data["taskName"] = this.taskName;
         data["comments"] = this.comments;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["taskDone"] = this.taskDone;
+        data["taskDeleted"] = this.taskDeleted;
+        data["taskArchived"] = this.taskArchived;
+        data["extensionReason"] = this.extensionReason;
+        data["addedReason"] = this.addedReason;
         return data; 
     }
 }
 
 export interface IUpdateTask {
     taskId?: number;
+    columnId?: number;
     taskName?: string | undefined;
     comments?: string | undefined;
+    pointsTotal?: number;
+    addedPoints?: number;
+    startTime?: Date;
+    endTime?: Date;
+    expectedEndTime?: Date;
+    taskDone?: string | undefined;
+    taskDeleted?: string | undefined;
+    taskArchived?: string | undefined;
+    extensionReason?: string | undefined;
+    addedReason?: string | undefined;
 }
 
 export class UpdateTimeLog implements IUpdateTimeLog {
     startTime?: Date;
     endTime?: Date;
     totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
     timelogId?: number;
 
     constructor(data?: IUpdateTimeLog) {
@@ -1401,6 +2061,8 @@ export class UpdateTimeLog implements IUpdateTimeLog {
             this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
             this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
             this.totalTime = _data["totalTime"];
+            this.billable = _data["billable"];
+            this.archived = _data["archived"];
             this.timelogId = _data["timelogId"];
         }
     }
@@ -1417,6 +2079,8 @@ export class UpdateTimeLog implements IUpdateTimeLog {
         data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
         data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
         data["totalTime"] = this.totalTime;
+        data["billable"] = this.billable;
+        data["archived"] = this.archived;
         data["timelogId"] = this.timelogId;
         return data; 
     }
@@ -1426,12 +2090,18 @@ export interface IUpdateTimeLog {
     startTime?: Date;
     endTime?: Date;
     totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
     timelogId?: number;
 }
 
 export class UpdateUser implements IUpdateUser {
     userName?: string | undefined;
     role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
     userId?: number;
 
     constructor(data?: IUpdateUser) {
@@ -1447,6 +2117,10 @@ export class UpdateUser implements IUpdateUser {
         if (_data) {
             this.userName = _data["userName"];
             this.role = _data["role"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+            this.accessToken = _data["accessToken"];
+            this.archived = _data["archived"];
             this.userId = _data["userId"];
         }
     }
@@ -1462,6 +2136,10 @@ export class UpdateUser implements IUpdateUser {
         data = typeof data === 'object' ? data : {};
         data["userName"] = this.userName;
         data["role"] = this.role;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        data["accessToken"] = this.accessToken;
+        data["archived"] = this.archived;
         data["userId"] = this.userId;
         return data; 
     }
@@ -1470,13 +2148,81 @@ export class UpdateUser implements IUpdateUser {
 export interface IUpdateUser {
     userName?: string | undefined;
     role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
     userId?: number;
+}
+
+export class UserDto implements IUserDto {
+    userId?: number;
+    userName?: string | undefined;
+    role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
+
+    constructor(data?: IUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userId = _data["userId"];
+            this.userName = _data["userName"];
+            this.role = _data["role"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+            this.accessToken = _data["accessToken"];
+            this.archived = _data["archived"];
+        }
+    }
+
+    static fromJS(data: any): UserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
+        data["userName"] = this.userName;
+        data["role"] = this.role;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        data["accessToken"] = this.accessToken;
+        data["archived"] = this.archived;
+        return data; 
+    }
+}
+
+export interface IUserDto {
+    userId?: number;
+    userName?: string | undefined;
+    role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
 }
 
 export class UserObject implements IUserObject {
     userId?: number;
     userName?: string | undefined;
     role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
 
     constructor(data?: IUserObject) {
         if (data) {
@@ -1492,6 +2238,10 @@ export class UserObject implements IUserObject {
             this.userId = _data["userId"];
             this.userName = _data["userName"];
             this.role = _data["role"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+            this.accessToken = _data["accessToken"];
+            this.archived = _data["archived"];
         }
     }
 
@@ -1507,6 +2257,10 @@ export class UserObject implements IUserObject {
         data["userId"] = this.userId;
         data["userName"] = this.userName;
         data["role"] = this.role;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        data["accessToken"] = this.accessToken;
+        data["archived"] = this.archived;
         return data; 
     }
 }
@@ -1515,6 +2269,10 @@ export interface IUserObject {
     userId?: number;
     userName?: string | undefined;
     role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
 }
 
 export class ValidationProblemDetails extends ProblemDetails implements IValidationProblemDetails {

@@ -184,7 +184,7 @@ export const KanbanBoard = () => {
                         // setFormState={setFormState}
                         setColumnIndex={setColumnIndex}
                         cardId={`${columnIndex} - ${
-                          state[columnIndex][0].cards.length + 1
+                          state[columnIndex][0]?.cards.length + 1
                         }`}
                         columnIndex={columnIndex}
                         cardModalVisible={cardModalVisible}
@@ -245,7 +245,9 @@ export const KanbanBoard = () => {
                                             className="btn-sm w-50"
                                             onClick={() => {
                                               const newState = [...state];
-                                              newState[ind].splice(colIndex, 1);
+                                              newState[ind][
+                                                colIndex
+                                              ].cards.splice(cardIndex, 1);
                                               setState(newState);
                                             }}
                                           >
