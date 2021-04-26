@@ -47,7 +47,7 @@ export interface IClient {
      * @param body (optional) 
      * @return Success
      */
-    createUser(body: CreateUser | undefined): Promise<number>;
+    createUser(body: CreateUser | undefined): Promise<UserDto>;
     /**
      * @param projectId (optional) 
      * @param userId (optional) 
@@ -452,7 +452,7 @@ export class Client implements IClient {
      * @param body (optional) 
      * @return Success
      */
-    createUser(body: CreateUser | undefined): Promise<number> {
+    createUser(body: CreateUser | undefined): Promise<UserDto> {
         let url_ = this.baseUrl + "/Project/CreateUser";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -472,7 +472,7 @@ export class Client implements IClient {
         });
     }
 
-    protected processCreateUser(response: Response): Promise<number> {
+    protected processCreateUser(response: Response): Promise<UserDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 500) {
@@ -486,7 +486,7 @@ export class Client implements IClient {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = resultData200 !== undefined ? resultData200 : <any>null;
+            result200 = UserDto.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -494,7 +494,7 @@ export class Client implements IClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<number>(<any>null);
+        return Promise.resolve<UserDto>(<any>null);
     }
 
     /**

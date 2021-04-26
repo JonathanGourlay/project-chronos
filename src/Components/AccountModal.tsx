@@ -17,6 +17,8 @@ import GlobalContainer from "../API/GlobalState";
 
 interface iLoginDetails {
   email?: string;
+  userName?: string;
+  role?: string;
   password?: string;
   accessToken?: string;
 }
@@ -129,6 +131,32 @@ export const AccountModal = (props: IHandlerProps) => {
             </Tab>
             <Tab eventKey="Create" title="Create">
               <Form>
+                <Form.Group controlId={`formUserName`}>
+                  <Form.Control
+                    required={true}
+                    type="name"
+                    placeholder="User Name"
+                    onChange={(i) => {
+                      setLoginDetails({
+                        ...loginDetails,
+                        userName: i.target.value,
+                      });
+                    }}
+                  />
+                </Form.Group>
+                <Form.Group controlId={`formRole`}>
+                  <Form.Control
+                    required={true}
+                    type="role"
+                    placeholder="User Role"
+                    onChange={(i) => {
+                      setLoginDetails({
+                        ...loginDetails,
+                        role: i.target.value,
+                      });
+                    }}
+                  />
+                </Form.Group>
                 <Form.Group controlId={`formEmail`}>
                   <Form.Control
                     required={true}
@@ -179,7 +207,27 @@ export const AccountModal = (props: IHandlerProps) => {
                   </div>
                 </Form.Group>
               </Form>
-              <Button variant="primary" type="submit">
+              <Button
+                variant="primary"
+                type="submit"
+                onClick={async (e) => {
+                  const postObj = new UserDto();
+                  postObj.email = loginDetails?.email;
+                  postObj.password = loginDetails?.password;
+                  postObj.archived = "false";
+                  postObj.accessToken = loginDetails?.accessToken;
+                  postObj.userName = loginDetails?.userName;
+                  postObj.role = loginDetails?.role;
+                  const result = await apiClient.createUser(postObj);
+                  console.log(result);
+                  result != null
+                    ? successfulLogin(result)
+                    : addToast(errorToast, {
+                        appearance: "error",
+                        autoDismiss: true,
+                      });
+                }}
+              >
                 Sign Up
               </Button>
             </Tab>
