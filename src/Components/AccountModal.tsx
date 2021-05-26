@@ -9,6 +9,7 @@ import {
   OverlayTrigger,
   Overlay,
   Toast,
+  Dropdown,
 } from "react-bootstrap";
 import apiClient from "../API/client/";
 import { LoginObject, UserDto } from "../API/client/client";
@@ -117,13 +118,14 @@ export const AccountModal = (props: IHandlerProps) => {
                   postObj.email = loginDetails?.email;
                   postObj.password = loginDetails?.password;
                   const result = await apiClient.checkLogin(postObj);
-                  console.log(result);
-                  result != null
-                    ? successfulLogin(result)
-                    : addToast(errorToast, {
-                        appearance: "error",
-                        autoDismiss: true,
-                      });
+                  result && successfulLogin(result);
+                  if (!result) {
+                    props.setAccountModalVisible(false);
+                    addToast(errorToast, {
+                      appearance: "error",
+                      autoDismiss: true,
+                    });
+                  }
                 }}
               >
                 Login
@@ -144,18 +146,36 @@ export const AccountModal = (props: IHandlerProps) => {
                     }}
                   />
                 </Form.Group>
+
                 <Form.Group controlId={`formRole`}>
-                  <Form.Control
-                    required={true}
-                    type="role"
-                    placeholder="User Role"
-                    onChange={(i) => {
-                      setLoginDetails({
-                        ...loginDetails,
-                        role: i.target.value,
-                      });
-                    }}
-                  />
+                  <Dropdown>
+                    <Dropdown.Toggle style={{ width: 466 }}>
+                      {loginDetails?.role ? loginDetails.role : ""}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu align={"right"}>
+                      <Dropdown.Item
+                        onSelect={() => {
+                          setLoginDetails({
+                            ...loginDetails,
+                            role: "Admin",
+                          });
+                        }}
+                      >
+                        Admin
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                      <Dropdown.Item
+                        onSelect={() => {
+                          setLoginDetails({
+                            ...loginDetails,
+                            role: "Developer",
+                          });
+                        }}
+                      >
+                        Developer
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
                 </Form.Group>
                 <Form.Group controlId={`formEmail`}>
                   <Form.Control
@@ -219,7 +239,7 @@ export const AccountModal = (props: IHandlerProps) => {
                   postObj.userName = loginDetails?.userName;
                   postObj.role = loginDetails?.role;
                   const result = await apiClient.createUser(postObj);
-                  console.log(result);
+
                   result != null
                     ? successfulLogin(result)
                     : addToast(errorToast, {

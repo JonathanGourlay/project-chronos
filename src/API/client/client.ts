@@ -12,7 +12,34 @@ export interface IClient {
      * @param body (optional) 
      * @return Success
      */
-    getProject(body: number | undefined): Promise<ProjectObject[]>;
+    getRepos(body: string | undefined): Promise<Project[]>;
+    /**
+     * @param repoId (optional) 
+     * @param body (optional) 
+     * @return Success
+     */
+    getRepoProjectsAll(repoId: number | undefined, body: string | undefined): Promise<Project[]>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getUser(body: string | undefined): Promise<User>;
+    /**
+     * @param repoId (optional) 
+     * @param body (optional) 
+     * @return Success
+     */
+    getRepoUser(repoId: number | undefined, body: string | undefined): Promise<User>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getRepoProjects(body: number | undefined): Promise<ProjectObject[]>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getUserProjects(body: number | undefined): Promise<ProjectDto[]>;
     /**
      * @param body (optional) 
      * @return Success
@@ -27,7 +54,7 @@ export interface IClient {
      * @param body (optional) 
      * @return Success
      */
-    createProject(body: ProjectDto | undefined): Promise<number>;
+    createProject(body: CreateProject | undefined): Promise<number>;
     /**
      * @param body (optional) 
      * @return Success
@@ -64,7 +91,7 @@ export interface IClient {
      * @param body (optional) 
      * @return Success
      */
-    updateProject(body: UpdateProject | undefined): Promise<number>;
+    updateProject(body: ProjectViewDto | undefined): Promise<number>;
     /**
      * @param body (optional) 
      * @return Success
@@ -76,6 +103,12 @@ export interface IClient {
      */
     updateTask(body: UpdateTask | undefined): Promise<number>;
     /**
+     * @param columnId (optional) 
+     * @param taskId (optional) 
+     * @return Success
+     */
+    setColumnTask(columnId: number | undefined, taskId: number | undefined): Promise<number>;
+    /**
      * @param body (optional) 
      * @return Success
      */
@@ -85,6 +118,31 @@ export interface IClient {
      * @return Success
      */
     updateUser(body: UpdateUser | undefined): Promise<number>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getBoards(body: string | undefined): Promise<ProjectDto[]>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getBoardById(body: GetBoardByIdRequest | undefined): Promise<ProjectDto>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    moveCard(body: MoveCardRequest | undefined): Promise<ProjectDto>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    deleteCard(body: DeleteCardRequest | undefined): Promise<DeleteCardRequest>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    addCard(body: AddCardRequest | undefined): Promise<AddCardRequest>;
 }
 
 export class Client implements IClient {
@@ -101,8 +159,8 @@ export class Client implements IClient {
      * @param body (optional) 
      * @return Success
      */
-    getProject(body: number | undefined): Promise<ProjectObject[]> {
-        let url_ = this.baseUrl + "/Project/GetProject";
+    getRepos(body: string | undefined): Promise<Project[]> {
+        let url_ = this.baseUrl + "/Git/GetRepos";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -117,11 +175,225 @@ export class Client implements IClient {
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processGetProject(_response);
+            return this.processGetRepos(_response);
         });
     }
 
-    protected processGetProject(response: Response): Promise<ProjectObject[]> {
+    protected processGetRepos(response: Response): Promise<Project[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(Project.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<Project[]>(<any>null);
+    }
+
+    /**
+     * @param repoId (optional) 
+     * @param body (optional) 
+     * @return Success
+     */
+    getRepoProjectsAll(repoId: number | undefined, body: string | undefined): Promise<Project[]> {
+        let url_ = this.baseUrl + "/Git/GetRepoProjects?";
+        if (repoId === null)
+            throw new Error("The parameter 'repoId' cannot be null.");
+        else if (repoId !== undefined)
+            url_ += "repoId=" + encodeURIComponent("" + repoId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetRepoProjectsAll(_response);
+        });
+    }
+
+    protected processGetRepoProjectsAll(response: Response): Promise<Project[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(Project.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<Project[]>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getUser(body: string | undefined): Promise<User> {
+        let url_ = this.baseUrl + "/Git/GetUser";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetUser(_response);
+        });
+    }
+
+    protected processGetUser(response: Response): Promise<User> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = User.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<User>(<any>null);
+    }
+
+    /**
+     * @param repoId (optional) 
+     * @param body (optional) 
+     * @return Success
+     */
+    getRepoUser(repoId: number | undefined, body: string | undefined): Promise<User> {
+        let url_ = this.baseUrl + "/Git/GetRepoUser?";
+        if (repoId === null)
+            throw new Error("The parameter 'repoId' cannot be null.");
+        else if (repoId !== undefined)
+            url_ += "repoId=" + encodeURIComponent("" + repoId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetRepoUser(_response);
+        });
+    }
+
+    protected processGetRepoUser(response: Response): Promise<User> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = User.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<User>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getRepoProjects(body: number | undefined): Promise<ProjectObject[]> {
+        let url_ = this.baseUrl + "/Project/GetRepoProjects";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetRepoProjects(_response);
+        });
+    }
+
+    protected processGetRepoProjects(response: Response): Promise<ProjectObject[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 500) {
@@ -148,6 +420,59 @@ export class Client implements IClient {
             });
         }
         return Promise.resolve<ProjectObject[]>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getUserProjects(body: number | undefined): Promise<ProjectDto[]> {
+        let url_ = this.baseUrl + "/Project/GetUserProjects";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetUserProjects(_response);
+        });
+    }
+
+    protected processGetUserProjects(response: Response): Promise<ProjectDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ProjectDto.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProjectDto[]>(<any>null);
     }
 
     /**
@@ -256,7 +581,7 @@ export class Client implements IClient {
      * @param body (optional) 
      * @return Success
      */
-    createProject(body: ProjectDto | undefined): Promise<number> {
+    createProject(body: CreateProject | undefined): Promise<number> {
         let url_ = this.baseUrl + "/Project/CreateProject";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -609,7 +934,7 @@ export class Client implements IClient {
      * @param body (optional) 
      * @return Success
      */
-    updateProject(body: UpdateProject | undefined): Promise<number> {
+    updateProject(body: ProjectViewDto | undefined): Promise<number> {
         let url_ = this.baseUrl + "/Project/UpdateProject";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -753,6 +1078,60 @@ export class Client implements IClient {
     }
 
     /**
+     * @param columnId (optional) 
+     * @param taskId (optional) 
+     * @return Success
+     */
+    setColumnTask(columnId: number | undefined, taskId: number | undefined): Promise<number> {
+        let url_ = this.baseUrl + "/Project/SetColumnTask?";
+        if (columnId === null)
+            throw new Error("The parameter 'columnId' cannot be null.");
+        else if (columnId !== undefined)
+            url_ += "columnId=" + encodeURIComponent("" + columnId) + "&";
+        if (taskId === null)
+            throw new Error("The parameter 'taskId' cannot be null.");
+        else if (taskId !== undefined)
+            url_ += "taskId=" + encodeURIComponent("" + taskId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ = <RequestInit>{
+            method: "POST",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSetColumnTask(_response);
+        });
+    }
+
+    protected processSetColumnTask(response: Response): Promise<number> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = resultData200 !== undefined ? resultData200 : <any>null;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<number>(<any>null);
+    }
+
+    /**
      * @param body (optional) 
      * @return Success
      */
@@ -849,10 +1228,446 @@ export class Client implements IClient {
         }
         return Promise.resolve<number>(<any>null);
     }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getBoards(body: string | undefined): Promise<ProjectDto[]> {
+        let url_ = this.baseUrl + "/TrelloControllerrr/GetBoards";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetBoards(_response);
+        });
+    }
+
+    protected processGetBoards(response: Response): Promise<ProjectDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ProjectDto.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProjectDto[]>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getBoardById(body: GetBoardByIdRequest | undefined): Promise<ProjectDto> {
+        let url_ = this.baseUrl + "/TrelloControllerrr/GetBoardById";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetBoardById(_response);
+        });
+    }
+
+    protected processGetBoardById(response: Response): Promise<ProjectDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProjectDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProjectDto>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    moveCard(body: MoveCardRequest | undefined): Promise<ProjectDto> {
+        let url_ = this.baseUrl + "/TrelloControllerrr/MoveCard";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMoveCard(_response);
+        });
+    }
+
+    protected processMoveCard(response: Response): Promise<ProjectDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ProjectDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProjectDto>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    deleteCard(body: DeleteCardRequest | undefined): Promise<DeleteCardRequest> {
+        let url_ = this.baseUrl + "/TrelloControllerrr/DeleteCard";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDeleteCard(_response);
+        });
+    }
+
+    protected processDeleteCard(response: Response): Promise<DeleteCardRequest> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteCardRequest.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteCardRequest>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    addCard(body: AddCardRequest | undefined): Promise<AddCardRequest> {
+        let url_ = this.baseUrl + "/TrelloControllerrr/AddCard";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAddCard(_response);
+        });
+    }
+
+    protected processAddCard(response: Response): Promise<AddCardRequest> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AddCardRequest.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddCardRequest>(<any>null);
+    }
+}
+
+export class Account implements IAccount {
+    readonly avatarUrl?: string | undefined;
+    readonly bio?: string | undefined;
+    readonly blog?: string | undefined;
+    readonly collaborators?: number | undefined;
+    readonly company?: string | undefined;
+    readonly createdAt?: Date;
+    readonly diskUsage?: number | undefined;
+    readonly email?: string | undefined;
+    readonly followers?: number;
+    readonly following?: number;
+    readonly hireable?: boolean | undefined;
+    readonly htmlUrl?: string | undefined;
+    readonly id?: number;
+    readonly nodeId?: string | undefined;
+    readonly location?: string | undefined;
+    readonly login?: string | undefined;
+    readonly name?: string | undefined;
+    type?: AccountType;
+    readonly ownedPrivateRepos?: number;
+    plan?: Plan;
+    readonly privateGists?: number | undefined;
+    readonly publicGists?: number;
+    readonly publicRepos?: number;
+    readonly totalPrivateRepos?: number;
+    readonly url?: string | undefined;
+
+    constructor(data?: IAccount) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            (<any>this).avatarUrl = _data["avatarUrl"];
+            (<any>this).bio = _data["bio"];
+            (<any>this).blog = _data["blog"];
+            (<any>this).collaborators = _data["collaborators"];
+            (<any>this).company = _data["company"];
+            (<any>this).createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            (<any>this).diskUsage = _data["diskUsage"];
+            (<any>this).email = _data["email"];
+            (<any>this).followers = _data["followers"];
+            (<any>this).following = _data["following"];
+            (<any>this).hireable = _data["hireable"];
+            (<any>this).htmlUrl = _data["htmlUrl"];
+            (<any>this).id = _data["id"];
+            (<any>this).nodeId = _data["nodeId"];
+            (<any>this).location = _data["location"];
+            (<any>this).login = _data["login"];
+            (<any>this).name = _data["name"];
+            this.type = _data["type"];
+            (<any>this).ownedPrivateRepos = _data["ownedPrivateRepos"];
+            this.plan = _data["plan"] ? Plan.fromJS(_data["plan"]) : <any>undefined;
+            (<any>this).privateGists = _data["privateGists"];
+            (<any>this).publicGists = _data["publicGists"];
+            (<any>this).publicRepos = _data["publicRepos"];
+            (<any>this).totalPrivateRepos = _data["totalPrivateRepos"];
+            (<any>this).url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): Account {
+        data = typeof data === 'object' ? data : {};
+        let result = new Account();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["avatarUrl"] = this.avatarUrl;
+        data["bio"] = this.bio;
+        data["blog"] = this.blog;
+        data["collaborators"] = this.collaborators;
+        data["company"] = this.company;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["diskUsage"] = this.diskUsage;
+        data["email"] = this.email;
+        data["followers"] = this.followers;
+        data["following"] = this.following;
+        data["hireable"] = this.hireable;
+        data["htmlUrl"] = this.htmlUrl;
+        data["id"] = this.id;
+        data["nodeId"] = this.nodeId;
+        data["location"] = this.location;
+        data["login"] = this.login;
+        data["name"] = this.name;
+        data["type"] = this.type;
+        data["ownedPrivateRepos"] = this.ownedPrivateRepos;
+        data["plan"] = this.plan ? this.plan.toJSON() : <any>undefined;
+        data["privateGists"] = this.privateGists;
+        data["publicGists"] = this.publicGists;
+        data["publicRepos"] = this.publicRepos;
+        data["totalPrivateRepos"] = this.totalPrivateRepos;
+        data["url"] = this.url;
+        return data; 
+    }
+}
+
+export interface IAccount {
+    avatarUrl?: string | undefined;
+    bio?: string | undefined;
+    blog?: string | undefined;
+    collaborators?: number | undefined;
+    company?: string | undefined;
+    createdAt?: Date;
+    diskUsage?: number | undefined;
+    email?: string | undefined;
+    followers?: number;
+    following?: number;
+    hireable?: boolean | undefined;
+    htmlUrl?: string | undefined;
+    id?: number;
+    nodeId?: string | undefined;
+    location?: string | undefined;
+    login?: string | undefined;
+    name?: string | undefined;
+    type?: AccountType;
+    ownedPrivateRepos?: number;
+    plan?: Plan;
+    privateGists?: number | undefined;
+    publicGists?: number;
+    publicRepos?: number;
+    totalPrivateRepos?: number;
+    url?: string | undefined;
+}
+
+export enum AccountType {
+    _0 = 0,
+    _1 = 1,
+    _2 = 2,
+}
+
+export class AddCardRequest implements IAddCardRequest {
+    token?: string | undefined;
+    listId?: string | undefined;
+    position?: string | undefined;
+    task?: TaskDto;
+
+    constructor(data?: IAddCardRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.token = _data["token"];
+            this.listId = _data["listId"];
+            this.position = _data["position"];
+            this.task = _data["task"] ? TaskDto.fromJS(_data["task"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AddCardRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddCardRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["token"] = this.token;
+        data["listId"] = this.listId;
+        data["position"] = this.position;
+        data["task"] = this.task ? this.task.toJSON() : <any>undefined;
+        return data; 
+    }
+}
+
+export interface IAddCardRequest {
+    token?: string | undefined;
+    listId?: string | undefined;
+    position?: string | undefined;
+    task?: TaskDto;
 }
 
 export class ColumnDto implements IColumnDto {
     columnId?: number;
+    trelloColumnId!: string;
     columnName?: string | undefined;
     pointsTotal?: number;
     addedPoints?: number;
@@ -870,6 +1685,7 @@ export class ColumnDto implements IColumnDto {
     init(_data?: any) {
         if (_data) {
             this.columnId = _data["columnId"];
+            this.trelloColumnId = _data["trelloColumnId"];
             this.columnName = _data["columnName"];
             this.pointsTotal = _data["pointsTotal"];
             this.addedPoints = _data["addedPoints"];
@@ -891,6 +1707,7 @@ export class ColumnDto implements IColumnDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["columnId"] = this.columnId;
+        data["trelloColumnId"] = this.trelloColumnId;
         data["columnName"] = this.columnName;
         data["pointsTotal"] = this.pointsTotal;
         data["addedPoints"] = this.addedPoints;
@@ -905,6 +1722,7 @@ export class ColumnDto implements IColumnDto {
 
 export interface IColumnDto {
     columnId?: number;
+    trelloColumnId: string;
     columnName?: string | undefined;
     pointsTotal?: number;
     addedPoints?: number;
@@ -1017,6 +1835,78 @@ export interface ICreateColumn {
     projectId?: number;
     pointsTotal?: number;
     addedPointsTotal?: number;
+}
+
+export class CreateProject implements ICreateProject {
+    projectId?: number;
+    projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectComplete?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
+
+    constructor(data?: ICreateProject) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.projectId = _data["projectId"];
+            this.projectName = _data["projectName"];
+            this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
+            this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            this.projectComplete = _data["projectComplete"];
+            this.projectArchived = _data["projectArchived"];
+            this.timeIncrement = _data["timeIncrement"];
+        }
+    }
+
+    static fromJS(data: any): CreateProject {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateProject();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["projectId"] = this.projectId;
+        data["projectName"] = this.projectName;
+        data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
+        data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        data["projectComplete"] = this.projectComplete;
+        data["projectArchived"] = this.projectArchived;
+        data["timeIncrement"] = this.timeIncrement;
+        return data; 
+    }
+}
+
+export interface ICreateProject {
+    projectId?: number;
+    projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectComplete?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
 }
 
 export class CreateTask implements ICreateTask {
@@ -1219,6 +2109,131 @@ export interface ICreateUser {
     archived?: string | undefined;
 }
 
+export class DeleteCardRequest implements IDeleteCardRequest {
+    token?: string | undefined;
+    cardId?: string | undefined;
+
+    constructor(data?: IDeleteCardRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.token = _data["token"];
+            this.cardId = _data["cardId"];
+        }
+    }
+
+    static fromJS(data: any): DeleteCardRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteCardRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["token"] = this.token;
+        data["cardId"] = this.cardId;
+        return data; 
+    }
+}
+
+export interface IDeleteCardRequest {
+    token?: string | undefined;
+    cardId?: string | undefined;
+}
+
+export class GetBoardByIdRequest implements IGetBoardByIdRequest {
+    token?: string | undefined;
+    boardId?: string | undefined;
+
+    constructor(data?: IGetBoardByIdRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.token = _data["token"];
+            this.boardId = _data["boardId"];
+        }
+    }
+
+    static fromJS(data: any): GetBoardByIdRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetBoardByIdRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["token"] = this.token;
+        data["boardId"] = this.boardId;
+        return data; 
+    }
+}
+
+export interface IGetBoardByIdRequest {
+    token?: string | undefined;
+    boardId?: string | undefined;
+}
+
+export enum ItemState {
+    _0 = 0,
+    _1 = 1,
+}
+
+export class ItemStateStringEnum implements IItemStateStringEnum {
+    readonly stringValue?: string | undefined;
+    value?: ItemState;
+
+    constructor(data?: IItemStateStringEnum) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            (<any>this).stringValue = _data["stringValue"];
+            this.value = _data["value"];
+        }
+    }
+
+    static fromJS(data: any): ItemStateStringEnum {
+        data = typeof data === 'object' ? data : {};
+        let result = new ItemStateStringEnum();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["stringValue"] = this.stringValue;
+        data["value"] = this.value;
+        return data; 
+    }
+}
+
+export interface IItemStateStringEnum {
+    stringValue?: string | undefined;
+    value?: ItemState;
+}
+
 export class LoginObject implements ILoginObject {
     email?: string | undefined;
     password?: string | undefined;
@@ -1257,6 +2272,183 @@ export class LoginObject implements ILoginObject {
 export interface ILoginObject {
     email?: string | undefined;
     password?: string | undefined;
+}
+
+export class MoveCardRequest implements IMoveCardRequest {
+    token?: string | undefined;
+    cardId?: string | undefined;
+    newPosition?: string | undefined;
+    boardId?: string | undefined;
+
+    constructor(data?: IMoveCardRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.token = _data["token"];
+            this.cardId = _data["cardId"];
+            this.newPosition = _data["newPosition"];
+            this.boardId = _data["boardId"];
+        }
+    }
+
+    static fromJS(data: any): MoveCardRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new MoveCardRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["token"] = this.token;
+        data["cardId"] = this.cardId;
+        data["newPosition"] = this.newPosition;
+        data["boardId"] = this.boardId;
+        return data; 
+    }
+}
+
+export interface IMoveCardRequest {
+    token?: string | undefined;
+    cardId?: string | undefined;
+    newPosition?: string | undefined;
+    boardId?: string | undefined;
+}
+
+export class Organization extends Account implements IOrganization {
+    readonly billingAddress?: string | undefined;
+    readonly reposUrl?: string | undefined;
+    readonly eventsUrl?: string | undefined;
+    readonly hooksUrl?: string | undefined;
+    readonly issuesUrl?: string | undefined;
+    readonly membersUrl?: string | undefined;
+    readonly publicMembersUrl?: string | undefined;
+    readonly description?: string | undefined;
+    readonly isVerified?: boolean;
+    readonly hasOrganizationProjects?: boolean;
+    readonly hasRepositoryProjects?: boolean;
+    readonly updatedAt?: Date;
+
+    constructor(data?: IOrganization) {
+        super(data);
+    }
+
+    init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            (<any>this).billingAddress = _data["billingAddress"];
+            (<any>this).reposUrl = _data["reposUrl"];
+            (<any>this).eventsUrl = _data["eventsUrl"];
+            (<any>this).hooksUrl = _data["hooksUrl"];
+            (<any>this).issuesUrl = _data["issuesUrl"];
+            (<any>this).membersUrl = _data["membersUrl"];
+            (<any>this).publicMembersUrl = _data["publicMembersUrl"];
+            (<any>this).description = _data["description"];
+            (<any>this).isVerified = _data["isVerified"];
+            (<any>this).hasOrganizationProjects = _data["hasOrganizationProjects"];
+            (<any>this).hasRepositoryProjects = _data["hasRepositoryProjects"];
+            (<any>this).updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): Organization {
+        data = typeof data === 'object' ? data : {};
+        let result = new Organization();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["billingAddress"] = this.billingAddress;
+        data["reposUrl"] = this.reposUrl;
+        data["eventsUrl"] = this.eventsUrl;
+        data["hooksUrl"] = this.hooksUrl;
+        data["issuesUrl"] = this.issuesUrl;
+        data["membersUrl"] = this.membersUrl;
+        data["publicMembersUrl"] = this.publicMembersUrl;
+        data["description"] = this.description;
+        data["isVerified"] = this.isVerified;
+        data["hasOrganizationProjects"] = this.hasOrganizationProjects;
+        data["hasRepositoryProjects"] = this.hasRepositoryProjects;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data; 
+    }
+}
+
+export interface IOrganization extends IAccount {
+    billingAddress?: string | undefined;
+    reposUrl?: string | undefined;
+    eventsUrl?: string | undefined;
+    hooksUrl?: string | undefined;
+    issuesUrl?: string | undefined;
+    membersUrl?: string | undefined;
+    publicMembersUrl?: string | undefined;
+    description?: string | undefined;
+    isVerified?: boolean;
+    hasOrganizationProjects?: boolean;
+    hasRepositoryProjects?: boolean;
+    updatedAt?: Date;
+}
+
+export class Plan implements IPlan {
+    readonly collaborators?: number;
+    readonly name?: string | undefined;
+    readonly privateRepos?: number;
+    readonly space?: number;
+    readonly billingEmail?: string | undefined;
+
+    constructor(data?: IPlan) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            (<any>this).collaborators = _data["collaborators"];
+            (<any>this).name = _data["name"];
+            (<any>this).privateRepos = _data["privateRepos"];
+            (<any>this).space = _data["space"];
+            (<any>this).billingEmail = _data["billingEmail"];
+        }
+    }
+
+    static fromJS(data: any): Plan {
+        data = typeof data === 'object' ? data : {};
+        let result = new Plan();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["collaborators"] = this.collaborators;
+        data["name"] = this.name;
+        data["privateRepos"] = this.privateRepos;
+        data["space"] = this.space;
+        data["billingEmail"] = this.billingEmail;
+        return data; 
+    }
+}
+
+export interface IPlan {
+    collaborators?: number;
+    name?: string | undefined;
+    privateRepos?: number;
+    space?: number;
+    billingEmail?: string | undefined;
 }
 
 export class ProblemDetails implements IProblemDetails {
@@ -1311,15 +2503,96 @@ export interface IProblemDetails {
     instance?: string | undefined;
 }
 
+export class Project implements IProject {
+    readonly ownerUrl?: string | undefined;
+    readonly htmlUrl?: string | undefined;
+    readonly url?: string | undefined;
+    readonly id?: number;
+    readonly nodeId?: string | undefined;
+    readonly name?: string | undefined;
+    readonly body?: string | undefined;
+    readonly number?: number;
+    state?: ItemStateStringEnum;
+    creator?: User;
+    readonly createdAt?: Date;
+    readonly updatedAt?: Date;
+
+    constructor(data?: IProject) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            (<any>this).ownerUrl = _data["ownerUrl"];
+            (<any>this).htmlUrl = _data["htmlUrl"];
+            (<any>this).url = _data["url"];
+            (<any>this).id = _data["id"];
+            (<any>this).nodeId = _data["nodeId"];
+            (<any>this).name = _data["name"];
+            (<any>this).body = _data["body"];
+            (<any>this).number = _data["number"];
+            this.state = _data["state"] ? ItemStateStringEnum.fromJS(_data["state"]) : <any>undefined;
+            this.creator = _data["creator"] ? User.fromJS(_data["creator"]) : <any>undefined;
+            (<any>this).createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            (<any>this).updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): Project {
+        data = typeof data === 'object' ? data : {};
+        let result = new Project();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["ownerUrl"] = this.ownerUrl;
+        data["htmlUrl"] = this.htmlUrl;
+        data["url"] = this.url;
+        data["id"] = this.id;
+        data["nodeId"] = this.nodeId;
+        data["name"] = this.name;
+        data["body"] = this.body;
+        data["number"] = this.number;
+        data["state"] = this.state ? this.state.toJSON() : <any>undefined;
+        data["creator"] = this.creator ? this.creator.toJSON() : <any>undefined;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data; 
+    }
+}
+
+export interface IProject {
+    ownerUrl?: string | undefined;
+    htmlUrl?: string | undefined;
+    url?: string | undefined;
+    id?: number;
+    nodeId?: string | undefined;
+    name?: string | undefined;
+    body?: string | undefined;
+    number?: number;
+    state?: ItemStateStringEnum;
+    creator?: User;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export class ProjectDto implements IProjectDto {
     projectId?: number;
-    projectName?: string | undefined;
-    projectStartTime?: Date;
+    trelloProjectId!: string;
+    projectName!: string;
+    projectStartTime!: Date;
     projectEndTime?: Date;
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
-    projectCompleated?: string | undefined;
+    projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
     users?: UserDto[] | undefined;
@@ -1337,13 +2610,14 @@ export class ProjectDto implements IProjectDto {
     init(_data?: any) {
         if (_data) {
             this.projectId = _data["projectId"];
+            this.trelloProjectId = _data["trelloProjectId"];
             this.projectName = _data["projectName"];
             this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
             this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
             this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
             this.pointsTotal = _data["pointsTotal"];
             this.addedPoints = _data["addedPoints"];
-            this.projectCompleated = _data["projectCompleated"];
+            this.projectComplete = _data["projectComplete"];
             this.projectArchived = _data["projectArchived"];
             this.timeIncrement = _data["timeIncrement"];
             if (Array.isArray(_data["users"])) {
@@ -1369,13 +2643,14 @@ export class ProjectDto implements IProjectDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["projectId"] = this.projectId;
+        data["trelloProjectId"] = this.trelloProjectId;
         data["projectName"] = this.projectName;
         data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
         data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
         data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
         data["pointsTotal"] = this.pointsTotal;
         data["addedPoints"] = this.addedPoints;
-        data["projectCompleated"] = this.projectCompleated;
+        data["projectComplete"] = this.projectComplete;
         data["projectArchived"] = this.projectArchived;
         data["timeIncrement"] = this.timeIncrement;
         if (Array.isArray(this.users)) {
@@ -1394,13 +2669,14 @@ export class ProjectDto implements IProjectDto {
 
 export interface IProjectDto {
     projectId?: number;
-    projectName?: string | undefined;
-    projectStartTime?: Date;
+    trelloProjectId: string;
+    projectName: string;
+    projectStartTime: Date;
     projectEndTime?: Date;
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
-    projectCompleated?: string | undefined;
+    projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
     users?: UserDto[] | undefined;
@@ -1415,7 +2691,7 @@ export class ProjectObject implements IProjectObject {
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
-    projectCompleated?: string | undefined;
+    projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
     users?: UserObject[] | undefined;
@@ -1439,7 +2715,7 @@ export class ProjectObject implements IProjectObject {
             this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
             this.pointsTotal = _data["pointsTotal"];
             this.addedPoints = _data["addedPoints"];
-            this.projectCompleated = _data["projectCompleated"];
+            this.projectComplete = _data["projectComplete"];
             this.projectArchived = _data["projectArchived"];
             this.timeIncrement = _data["timeIncrement"];
             if (Array.isArray(_data["users"])) {
@@ -1471,7 +2747,7 @@ export class ProjectObject implements IProjectObject {
         data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
         data["pointsTotal"] = this.pointsTotal;
         data["addedPoints"] = this.addedPoints;
-        data["projectCompleated"] = this.projectCompleated;
+        data["projectComplete"] = this.projectComplete;
         data["projectArchived"] = this.projectArchived;
         data["timeIncrement"] = this.timeIncrement;
         if (Array.isArray(this.users)) {
@@ -1496,15 +2772,132 @@ export interface IProjectObject {
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
-    projectCompleated?: string | undefined;
+    projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
     users?: UserObject[] | undefined;
     columns?: ColumnObject[] | undefined;
 }
 
+export class ProjectViewDto implements IProjectViewDto {
+    projectId?: number;
+    projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectComplete?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
+
+    constructor(data?: IProjectViewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.projectId = _data["projectId"];
+            this.projectName = _data["projectName"];
+            this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
+            this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
+            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
+            this.pointsTotal = _data["pointsTotal"];
+            this.addedPoints = _data["addedPoints"];
+            this.projectComplete = _data["projectComplete"];
+            this.projectArchived = _data["projectArchived"];
+            this.timeIncrement = _data["timeIncrement"];
+        }
+    }
+
+    static fromJS(data: any): ProjectViewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProjectViewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["projectId"] = this.projectId;
+        data["projectName"] = this.projectName;
+        data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
+        data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
+        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
+        data["pointsTotal"] = this.pointsTotal;
+        data["addedPoints"] = this.addedPoints;
+        data["projectComplete"] = this.projectComplete;
+        data["projectArchived"] = this.projectArchived;
+        data["timeIncrement"] = this.timeIncrement;
+        return data; 
+    }
+}
+
+export interface IProjectViewDto {
+    projectId?: number;
+    projectName?: string | undefined;
+    projectStartTime?: Date;
+    projectEndTime?: Date;
+    expectedEndTime?: Date;
+    pointsTotal?: number;
+    addedPoints?: number;
+    projectComplete?: string | undefined;
+    projectArchived?: string | undefined;
+    timeIncrement?: number;
+}
+
+export class RepositoryPermissions implements IRepositoryPermissions {
+    readonly admin?: boolean;
+    readonly push?: boolean;
+    readonly pull?: boolean;
+
+    constructor(data?: IRepositoryPermissions) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            (<any>this).admin = _data["admin"];
+            (<any>this).push = _data["push"];
+            (<any>this).pull = _data["pull"];
+        }
+    }
+
+    static fromJS(data: any): RepositoryPermissions {
+        data = typeof data === 'object' ? data : {};
+        let result = new RepositoryPermissions();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["admin"] = this.admin;
+        data["push"] = this.push;
+        data["pull"] = this.pull;
+        return data; 
+    }
+}
+
+export interface IRepositoryPermissions {
+    admin?: boolean;
+    push?: boolean;
+    pull?: boolean;
+}
+
 export class TaskDto implements ITaskDto {
     taskId?: number;
+    trelloTaskId!: string;
     taskName?: string | undefined;
     comments?: string | undefined;
     points?: number;
@@ -1517,8 +2910,8 @@ export class TaskDto implements ITaskDto {
     taskArchived?: string | undefined;
     extensionReason?: string | undefined;
     addedReason?: string | undefined;
-    timelogs?: TimeLogDto[] | undefined;
-    users?: UserDto[] | undefined;
+    timelogs?: TimeLogViewDto[] | undefined;
+    users?: UserViewDto[] | undefined;
 
     constructor(data?: ITaskDto) {
         if (data) {
@@ -1532,6 +2925,7 @@ export class TaskDto implements ITaskDto {
     init(_data?: any) {
         if (_data) {
             this.taskId = _data["taskId"];
+            this.trelloTaskId = _data["trelloTaskId"];
             this.taskName = _data["taskName"];
             this.comments = _data["comments"];
             this.points = _data["points"];
@@ -1547,12 +2941,12 @@ export class TaskDto implements ITaskDto {
             if (Array.isArray(_data["timelogs"])) {
                 this.timelogs = [] as any;
                 for (let item of _data["timelogs"])
-                    this.timelogs!.push(TimeLogDto.fromJS(item));
+                    this.timelogs!.push(TimeLogViewDto.fromJS(item));
             }
             if (Array.isArray(_data["users"])) {
                 this.users = [] as any;
                 for (let item of _data["users"])
-                    this.users!.push(UserDto.fromJS(item));
+                    this.users!.push(UserViewDto.fromJS(item));
             }
         }
     }
@@ -1567,6 +2961,7 @@ export class TaskDto implements ITaskDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["taskId"] = this.taskId;
+        data["trelloTaskId"] = this.trelloTaskId;
         data["taskName"] = this.taskName;
         data["comments"] = this.comments;
         data["points"] = this.points;
@@ -1595,6 +2990,7 @@ export class TaskDto implements ITaskDto {
 
 export interface ITaskDto {
     taskId?: number;
+    trelloTaskId: string;
     taskName?: string | undefined;
     comments?: string | undefined;
     points?: number;
@@ -1607,8 +3003,8 @@ export interface ITaskDto {
     taskArchived?: string | undefined;
     extensionReason?: string | undefined;
     addedReason?: string | undefined;
-    timelogs?: TimeLogDto[] | undefined;
-    users?: UserDto[] | undefined;
+    timelogs?: TimeLogViewDto[] | undefined;
+    users?: UserViewDto[] | undefined;
 }
 
 export class TaskObject implements ITaskObject {
@@ -1719,62 +3115,6 @@ export interface ITaskObject {
     users?: UserObject[] | undefined;
 }
 
-export class TimeLogDto implements ITimeLogDto {
-    timeLogId?: number;
-    startTime?: Date;
-    endTime?: Date;
-    totalTime?: number;
-    billable?: string | undefined;
-    archived?: string | undefined;
-
-    constructor(data?: ITimeLogDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.timeLogId = _data["timeLogId"];
-            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
-            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
-            this.totalTime = _data["totalTime"];
-            this.billable = _data["billable"];
-            this.archived = _data["archived"];
-        }
-    }
-
-    static fromJS(data: any): TimeLogDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TimeLogDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["timeLogId"] = this.timeLogId;
-        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
-        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
-        data["totalTime"] = this.totalTime;
-        data["billable"] = this.billable;
-        data["archived"] = this.archived;
-        return data; 
-    }
-}
-
-export interface ITimeLogDto {
-    timeLogId?: number;
-    startTime?: Date;
-    endTime?: Date;
-    totalTime?: number;
-    billable?: string | undefined;
-    archived?: string | undefined;
-}
-
 export class TimeLogObject implements ITimeLogObject {
     timeLogId?: number;
     startTime?: Date;
@@ -1831,6 +3171,66 @@ export interface ITimeLogObject {
     archived?: string | undefined;
 }
 
+export class TimeLogViewDto implements ITimeLogViewDto {
+    timeLogId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
+    linkTimelogTaskId?: number;
+
+    constructor(data?: ITimeLogViewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.timeLogId = _data["timeLogId"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.totalTime = _data["totalTime"];
+            this.billable = _data["billable"];
+            this.archived = _data["archived"];
+            this.linkTimelogTaskId = _data["linkTimelogTaskId"];
+        }
+    }
+
+    static fromJS(data: any): TimeLogViewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TimeLogViewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["timeLogId"] = this.timeLogId;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["totalTime"] = this.totalTime;
+        data["billable"] = this.billable;
+        data["archived"] = this.archived;
+        data["linkTimelogTaskId"] = this.linkTimelogTaskId;
+        return data; 
+    }
+}
+
+export interface ITimeLogViewDto {
+    timeLogId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
+    linkTimelogTaskId?: number;
+}
+
 export class UpdateColumn implements IUpdateColumn {
     columnName?: string | undefined;
     pointsTotal?: number;
@@ -1877,78 +3277,6 @@ export interface IUpdateColumn {
     pointsTotal?: number;
     addedPointsTotal?: number;
     columnId?: number;
-}
-
-export class UpdateProject implements IUpdateProject {
-    projectName?: string | undefined;
-    projectId?: number;
-    projectStartTime?: Date;
-    projectEndTime?: Date;
-    expectedEndTime?: Date;
-    pointsTotal?: number;
-    addedPoints?: number;
-    projectComplete?: string | undefined;
-    projectArchived?: string | undefined;
-    timeIncrement?: number;
-
-    constructor(data?: IUpdateProject) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.projectName = _data["projectName"];
-            this.projectId = _data["projectId"];
-            this.projectStartTime = _data["projectStartTime"] ? new Date(_data["projectStartTime"].toString()) : <any>undefined;
-            this.projectEndTime = _data["projectEndTime"] ? new Date(_data["projectEndTime"].toString()) : <any>undefined;
-            this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
-            this.pointsTotal = _data["pointsTotal"];
-            this.addedPoints = _data["addedPoints"];
-            this.projectComplete = _data["projectComplete"];
-            this.projectArchived = _data["projectArchived"];
-            this.timeIncrement = _data["timeIncrement"];
-        }
-    }
-
-    static fromJS(data: any): UpdateProject {
-        data = typeof data === 'object' ? data : {};
-        let result = new UpdateProject();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["projectName"] = this.projectName;
-        data["projectId"] = this.projectId;
-        data["projectStartTime"] = this.projectStartTime ? this.projectStartTime.toISOString() : <any>undefined;
-        data["projectEndTime"] = this.projectEndTime ? this.projectEndTime.toISOString() : <any>undefined;
-        data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
-        data["pointsTotal"] = this.pointsTotal;
-        data["addedPoints"] = this.addedPoints;
-        data["projectComplete"] = this.projectComplete;
-        data["projectArchived"] = this.projectArchived;
-        data["timeIncrement"] = this.timeIncrement;
-        return data; 
-    }
-}
-
-export interface IUpdateProject {
-    projectName?: string | undefined;
-    projectId?: number;
-    projectStartTime?: Date;
-    projectEndTime?: Date;
-    expectedEndTime?: Date;
-    pointsTotal?: number;
-    addedPoints?: number;
-    projectComplete?: string | undefined;
-    projectArchived?: string | undefined;
-    timeIncrement?: number;
 }
 
 export class UpdateTask implements IUpdateTask {
@@ -2046,6 +3374,7 @@ export class UpdateTimeLog implements IUpdateTimeLog {
     billable?: string | undefined;
     archived?: string | undefined;
     timelogId?: number;
+    userId?: number;
 
     constructor(data?: IUpdateTimeLog) {
         if (data) {
@@ -2064,6 +3393,7 @@ export class UpdateTimeLog implements IUpdateTimeLog {
             this.billable = _data["billable"];
             this.archived = _data["archived"];
             this.timelogId = _data["timelogId"];
+            this.userId = _data["userId"];
         }
     }
 
@@ -2082,6 +3412,7 @@ export class UpdateTimeLog implements IUpdateTimeLog {
         data["billable"] = this.billable;
         data["archived"] = this.archived;
         data["timelogId"] = this.timelogId;
+        data["userId"] = this.userId;
         return data; 
     }
 }
@@ -2093,6 +3424,7 @@ export interface IUpdateTimeLog {
     billable?: string | undefined;
     archived?: string | undefined;
     timelogId?: number;
+    userId?: number;
 }
 
 export class UpdateUser implements IUpdateUser {
@@ -2155,8 +3487,61 @@ export interface IUpdateUser {
     userId?: number;
 }
 
+export class User extends Account implements IUser {
+    permissions?: RepositoryPermissions;
+    readonly siteAdmin?: boolean;
+    readonly suspendedAt?: Date | undefined;
+    readonly suspended?: boolean;
+    readonly ldapDistinguishedName?: string | undefined;
+    readonly updatedAt?: Date;
+
+    constructor(data?: IUser) {
+        super(data);
+    }
+
+    init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.permissions = _data["permissions"] ? RepositoryPermissions.fromJS(_data["permissions"]) : <any>undefined;
+            (<any>this).siteAdmin = _data["siteAdmin"];
+            (<any>this).suspendedAt = _data["suspendedAt"] ? new Date(_data["suspendedAt"].toString()) : <any>undefined;
+            (<any>this).suspended = _data["suspended"];
+            (<any>this).ldapDistinguishedName = _data["ldapDistinguishedName"];
+            (<any>this).updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): User {
+        data = typeof data === 'object' ? data : {};
+        let result = new User();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["permissions"] = this.permissions ? this.permissions.toJSON() : <any>undefined;
+        data["siteAdmin"] = this.siteAdmin;
+        data["suspendedAt"] = this.suspendedAt ? this.suspendedAt.toISOString() : <any>undefined;
+        data["suspended"] = this.suspended;
+        data["ldapDistinguishedName"] = this.ldapDistinguishedName;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data; 
+    }
+}
+
+export interface IUser extends IAccount {
+    permissions?: RepositoryPermissions;
+    siteAdmin?: boolean;
+    suspendedAt?: Date | undefined;
+    suspended?: boolean;
+    ldapDistinguishedName?: string | undefined;
+    updatedAt?: Date;
+}
+
 export class UserDto implements IUserDto {
-    userId?: number;
+    userId!: number;
     userName?: string | undefined;
     role?: string | undefined;
     email?: string | undefined;
@@ -2206,7 +3591,7 @@ export class UserDto implements IUserDto {
 }
 
 export interface IUserDto {
-    userId?: number;
+    userId: number;
     userName?: string | undefined;
     role?: string | undefined;
     email?: string | undefined;
@@ -2273,6 +3658,70 @@ export interface IUserObject {
     password?: string | undefined;
     accessToken?: string | undefined;
     archived?: string | undefined;
+}
+
+export class UserViewDto implements IUserViewDto {
+    userId!: number;
+    userName?: string | undefined;
+    role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
+    linkUserTaskId?: number;
+
+    constructor(data?: IUserViewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userId = _data["userId"];
+            this.userName = _data["userName"];
+            this.role = _data["role"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+            this.accessToken = _data["accessToken"];
+            this.archived = _data["archived"];
+            this.linkUserTaskId = _data["linkUserTaskId"];
+        }
+    }
+
+    static fromJS(data: any): UserViewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserViewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userId"] = this.userId;
+        data["userName"] = this.userName;
+        data["role"] = this.role;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        data["accessToken"] = this.accessToken;
+        data["archived"] = this.archived;
+        data["linkUserTaskId"] = this.linkUserTaskId;
+        return data; 
+    }
+}
+
+export interface IUserViewDto {
+    userId: number;
+    userName?: string | undefined;
+    role?: string | undefined;
+    email?: string | undefined;
+    password?: string | undefined;
+    accessToken?: string | undefined;
+    archived?: string | undefined;
+    linkUserTaskId?: number;
 }
 
 export class ValidationProblemDetails extends ProblemDetails implements IValidationProblemDetails {

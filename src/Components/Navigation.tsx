@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Navbar } from "react-bootstrap";
+import { Button, Container, Navbar } from "react-bootstrap";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import { UserDto } from "../API/client/client";
 import GlobalContainer from "../API/GlobalState";
@@ -51,17 +51,19 @@ const Navigation = () => {
           )}
         </Navbar>
         {activeUser ? (
-          <Switch>
-            <Route path="/projects">
-              <ProjectsPage />
-            </Route>
-            <Route path="/dashboard">dashboard</Route>
-            <Route path="/week">
-              <WeekPage />
-            </Route>
+          <Container fluid>
+            <Switch>
+              <Route path="/projects">
+                <ProjectsPage />
+              </Route>
+              <Route path="/dashboard">dashboard</Route>
+              <Route path="/week">
+                <WeekPage />
+              </Route>
 
-            <Route path="/day">Day Page Comp</Route>
-          </Switch>
+              <Route path="/day">Day Page Comp</Route>
+            </Switch>
+          </Container>
         ) : null}
       </Router>
       <AccountModal
