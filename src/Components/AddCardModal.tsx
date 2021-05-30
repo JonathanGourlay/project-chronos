@@ -62,14 +62,6 @@ const AddCardModal = (props: IHandlerProps) => {
 
         <Modal.Body>
           <Form
-            // onLoad={() => {
-            //   // Clone state to modify
-            //   const newState = formState;
-            //   // Set stateClone.id to cardId
-            //   newState.id = cardId;
-            //   // Set formState to new modified state
-            //   setFormState(newState);
-            // }}
             onSubmit={(e) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
@@ -91,6 +83,7 @@ const AddCardModal = (props: IHandlerProps) => {
             <Form.Group controlId={`${cardId}`}>
               <Form.Control type="string" value={cardId} disabled={true} />
             </Form.Group>
+            <Form.Label>Task Name</Form.Label>
             <Form.Group controlId={`formBasicName ${cardId}`}>
               <Form.Control
                 required={true}
@@ -105,6 +98,7 @@ const AddCardModal = (props: IHandlerProps) => {
                 }}
               />
             </Form.Group>
+            <Form.Label>Task Comments</Form.Label>
             <Form.Group controlId={`formBasicComments ${cardId}`}>
               <Form.Control
                 required={true}
@@ -118,7 +112,7 @@ const AddCardModal = (props: IHandlerProps) => {
                 }}
               />
             </Form.Group>
-
+            <Form.Label>Task Start Date</Form.Label>
             <Form.Group controlId={`formBasicstartDate ${cardId}`}>
               <Form.Control
                 type="date"
@@ -137,6 +131,7 @@ const AddCardModal = (props: IHandlerProps) => {
                 }}
               />
             </Form.Group>
+            <Form.Label>Task End Date</Form.Label>
             <Form.Group controlId={`formBasicEndDate ${cardId}`}>
               <Form.Control
                 type="date"
@@ -154,7 +149,8 @@ const AddCardModal = (props: IHandlerProps) => {
                 }}
               />
             </Form.Group>
-            <Form.Group controlId={`formBasicEndDate ${cardId}`}>
+            <Form.Label>Task Points</Form.Label>
+            <Form.Group controlId={`formBasicPoints ${cardId}`}>
               <Form.Control
                 type="number"
                 name="Task Points"

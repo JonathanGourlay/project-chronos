@@ -9,11 +9,12 @@ import {
   DraggingStyle,
   DragStart,
 } from "react-beautiful-dnd";
+import { BsThreeDots } from "react-icons/bs";
 import { Button, Card, Container, Dropdown, Toast } from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
 import AddCardModal from "./AddCardModal";
 import AddColumnModal from "./AddColumnModal";
-import apiClient from "../API/client/";
+import apiClient from "../API/client";
 import { useToasts } from "react-toast-notifications";
 import {
   ColumnDto,
@@ -31,8 +32,12 @@ import {
 import { useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
 import UpdateCardModal from "./UpdateCardModal";
+import AddProjectModal from "./AddProjectModal";
 
+// export type BoardCard = { id: string; comments: string; title: string };
 export type BoardCard = TaskDto;
+// export type Column = { id: string; title: string; cards: Array<BoardCard> };
+// export type Column = ColumnDto;
 export type Board = ColumnDto[][];
 
 const grid = 8;
@@ -79,6 +84,10 @@ function move(
     const destClone = Array.from(destination);
     const sInd = +droppableSource.droppableId;
     const [removed] = sourceClone.splice(droppableSource.index, 1);
+    // [removed][0].taskId = destClone.length + 1;
+    // sourceClone.map((item, index) => {
+    //   item.taskId = index + 1;
+    // });
     destClone.splice(droppableDestination.index, 0, removed);
     const result: { [key: string]: Array<BoardCard> } = {};
     result[sInd] = sourceClone;
@@ -116,6 +125,7 @@ const getListStyle = (isDraggingOver: boolean): CSSProperties => ({
 });
 
 export interface stateObject {
+  projectModalVisible: boolean;
   cardModalVisible: boolean;
   updateCardModalVisible: boolean;
   columnModalVisible: boolean;
@@ -128,7 +138,7 @@ export interface stateObject {
   selectedBoard: ProjectDto;
 }
 
-export const KanbanBoard = () => {
+export const KanbanBoardAdmin = () => {
   const [state, setState] = useSetState<stateObject>();
   const { activeUser, setActiveUser } = GlobalContainer.useContainer();
   const { addToast } = useToasts();
@@ -139,30 +149,25 @@ export const KanbanBoard = () => {
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
 
-  const getDbBoards = async (userId: number) => {
-    const boards = await apiClient.getUserProjects(userId);
-    setState({ ...state, boards: boards });
-  };
-
   const getBoards = async (token: string) => {
     const boards = await apiClient.getBoards(token);
     setState({ ...state, boards: boards });
   };
-  // const getBoardById = async (token: string, boardId: string) => {
-  //   var request = new GetBoardByIdRequest();
-  //   request.boardId = boardId;
-  //   request.token = token;
-  //   const board = await apiClient.getBoardById(request);
-  //   setState((prev) => {
-  //     var newState = prev;
-  //     newState.selectedBoard = board;
-  //     if (newState === prev) {
-  //       return prev;
-  //     }
-  //     return newState;
-  //   });
-  //   // setState({ selectedBoard: board });
-  // };
+  const getBoardById = async (token: string, boardId: string) => {
+    var request = new GetBoardByIdRequest();
+    request.boardId = boardId;
+    request.token = token;
+    const board = await apiClient.getBoardById(request);
+    setState((prev) => {
+      var newState = prev;
+      newState.selectedBoard = board;
+      if (newState === prev) {
+        return prev;
+      }
+      return newState;
+    });
+    // setState({ selectedBoard: board });
+  };
   const moveCard = async (
     token: string,
     cardId: string,
@@ -206,6 +211,7 @@ export const KanbanBoard = () => {
     });
     if (state.selectedBoard.columns) {
       const request = new CreateTask();
+      //console.log(state.selectedBoard.columns[index]);
       request.columnId = state.selectedBoard.columns[index].columnId;
       request.taskName = form.taskName;
       request.comments = form.comments;
@@ -219,6 +225,8 @@ export const KanbanBoard = () => {
       request.taskArchived = "false";
       request.taskDeleted = "false";
       request.taskDone = "false";
+      // console.log(request);
+      // console.log("Req");
       const addTask = await apiClient.createTask(request);
       addToast(
         <Toast>
@@ -289,6 +297,7 @@ export const KanbanBoard = () => {
           sourceColumn.tasks === undefined &&
           destColumn.tasks === undefined
         ) {
+          //console.log("added");
           const res = addItemToColumn(
             sInd,
             sourceColumn!.tasks![Number(state.cardId)]
@@ -302,6 +311,7 @@ export const KanbanBoard = () => {
           destColumn.tasks &&
           state.cardId
         ) {
+          console.log("HIT2");
           const result = move(
             sourceColumn.tasks,
             destColumn.tasks,
@@ -351,7 +361,7 @@ export const KanbanBoard = () => {
           <Dropdown.Toggle variant="success" id="dropdown-basic">
             {state.selectedBoard
               ? state.selectedBoard.projectName
-              : "Select Project"}
+              : "Generate Project"}
           </Dropdown.Toggle>
 
           <Dropdown.Menu>
@@ -359,7 +369,11 @@ export const KanbanBoard = () => {
               <>
                 <Dropdown.Item
                   onSelect={() => {
-                    setState({ selectedBoard: board });
+                    setState({
+                      selectedBoard: board,
+                      projectModalVisible: true,
+                    });
+                    // modal appears to fill in project information such as timescales
                   }}
                 >
                   {board.projectName}
@@ -376,8 +390,11 @@ export const KanbanBoard = () => {
           className="m-1"
           onClick={() => {
             //NOTE - change this to the logged in users key
-            activeUser && activeUser !== undefined
-              ? getDbBoards(activeUser.userId)
+            activeUser &&
+            activeUser !== undefined &&
+            activeUser.accessToken &&
+            activeUser.role === "Admin"
+              ? getBoards(activeUser.accessToken)
               : console.log("missed");
           }}
         >
@@ -404,15 +421,17 @@ export const KanbanBoard = () => {
         addColumn={addColumn}
       />
 
-      {/* <UpdateCardModal
+      <AddProjectModal
+        setState={setState}
+        project={state.selectedBoard ? state.selectedBoard : new ProjectDto()}
+        projectModalVisible={state.projectModalVisible}
+      />
+      <UpdateCardModal
         card={state.card ? state.card : new TaskDto()}
         cardModalVisible={state.updateCardModalVisible}
         setState={setState}
-        projectId={
-          state.selectedBoard.projectId ? state.selectedBoard.projectId : 0
-        }
-      /> */}
-
+        columnId={state.columnIndex}
+      />
       <div style={{ display: "flex" }}>
         {state.boardState ? (
           <DragDropContext onDragEnd={onDragEnd}>
@@ -453,6 +472,7 @@ export const KanbanBoard = () => {
                           )}
 
                           <>
+                            <h1>{state.selectedBoard.projectId}</h1>
                             <h1>{column.columnId}</h1>
                             <h1>{column.columnName}</h1>
                             <Button
@@ -492,12 +512,12 @@ export const KanbanBoard = () => {
                                           >
                                             <Card
                                               key={card.taskId}
-                                              onMouseDown={() => {
-                                                setState({
-                                                  cardId:
-                                                    card.taskId?.toString(),
-                                                });
-                                              }}
+                                              // onMouseDown={() => {
+                                              //   setState({
+                                              //     cardId:
+                                              //       card.taskId?.toString(),
+                                              //   });
+                                              // }}
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-around",
@@ -508,6 +528,24 @@ export const KanbanBoard = () => {
                                                 border: "none",
                                               }}
                                             >
+                                              <Button
+                                                onClick={() => {
+                                                  setState({
+                                                    cardId:
+                                                      card.taskId?.toString(),
+                                                    card: card,
+                                                    updateCardModalVisible:
+                                                      true,
+                                                    trelloCardId:
+                                                      card.trelloTaskId,
+                                                    columnIndex:
+                                                      column.columnId,
+                                                  });
+                                                }}
+                                              >
+                                                <BsThreeDots />
+                                              </Button>
+
                                               <Card.Title>
                                                 {card.points}
                                               </Card.Title>

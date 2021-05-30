@@ -4,7 +4,8 @@ import { useToasts } from "react-toast-notifications";
 // import { State } from "../Scripts/GlobalState";
 // import { State } from "../Scripts/GlobalState";
 import { createReducerContext, useSetState } from "react-use";
-import { TaskDto } from "../API/client/client";
+import apiClient from "../API/client";
+import { CreateTask, TaskDto } from "../API/client/client";
 import { BoardCard, stateObject } from "./KanBanBoard";
 
 // Modal Props
@@ -16,6 +17,7 @@ interface IHandlerProps {
       | Partial<stateObject>
       | ((prevState: stateObject) => Partial<stateObject>)
   ) => void;
+  columnId: number;
 }
 
 // Add Card Modal  Component
@@ -25,6 +27,7 @@ const UpdateCardModal = (props: IHandlerProps) => {
     card,
     cardModalVisible,
     setState,
+    columnId,
   } = props;
 
   const [formState, setFormState] = useSetState<BoardCard>();
@@ -36,18 +39,60 @@ const UpdateCardModal = (props: IHandlerProps) => {
     <>
       <Modal autoFocus={false} show={cardModalVisible}>
         <Modal.Header>
-          <Modal.Title>Add Card</Modal.Title>
+          <Modal.Title>Update Card</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
           <Form
-            onSubmit={(e) => {
+            onFocus={() => {
+              console.log("load");
+              setFormState((prev) => {
+                const newState = prev;
+                newState.taskName = card.taskName;
+                newState.taskArchived = "false";
+                newState.taskDeleted = "false";
+                newState.taskDone = "false";
+                newState.startTime = card.startTime;
+                newState.expectedEndTime = card.expectedEndTime;
+                newState.endTime = card.expectedEndTime;
+                return newState;
+              });
+            }}
+            onSubmit={async (e) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
 
               setFormState((prev) => {
                 const newState = prev;
                 newState.taskId = card.taskId;
+                return newState;
+              });
+              const createtaskReq = new CreateTask();
+              createtaskReq.columnId = columnId;
+              createtaskReq.taskName = formState.taskName;
+              createtaskReq.comments = formState.comments;
+              createtaskReq.startTime = formState.startTime;
+              createtaskReq.expectedEndTime = formState.expectedEndTime;
+              createtaskReq.extensionReason = formState.extensionReason;
+              createtaskReq.endTime = formState.endTime;
+              createtaskReq.pointsTotal = formState.points;
+              createtaskReq.addedPointsTotal = formState.addedPoints;
+              createtaskReq.extensionReason = formState.extensionReason;
+              createtaskReq.addedReason = formState.addedReason;
+              createtaskReq.taskArchived = "false";
+              createtaskReq.taskDeleted = "false";
+              createtaskReq.taskDone = "false";
+              console.log(createtaskReq);
+              const result = await apiClient.createTask(createtaskReq);
+              setState((prev) => {
+                const newState = prev;
+                newState.cardModalVisible = false;
+                if (newState.selectedBoard.columns) {
+                  const num = newState.selectedBoard.columns.findIndex(
+                    (column) => column.columnId === columnId
+                  );
+                  newState.selectedBoard.columns[num].columnId = result;
+                }
                 return newState;
               });
               setState({ cardModalVisible: false });
@@ -122,6 +167,7 @@ const UpdateCardModal = (props: IHandlerProps) => {
                     newState.expectedEndTime = new Date(
                       Date.parse(i.target.value)
                     );
+                    newState.endTime = new Date(Date.parse(i.target.value));
                     return newState;
                   });
                   setEndDate({ endDate: new Date(Date.parse(i.target.value)) });
@@ -154,6 +200,34 @@ const UpdateCardModal = (props: IHandlerProps) => {
 
                   newState.addedPoints = Number(i.target.value);
 
+                  setFormState(newState);
+                }}
+              />
+            </Form.Group>
+            <Form.Label>Added Reason</Form.Label>
+            <Form.Group controlId={`formBasicAddedReason ${card.taskId}`}>
+              <Form.Control
+                required={true}
+                type="reason"
+                defaultValue={card.addedReason}
+                onChange={(i) => {
+                  const newState = formState;
+                  // const newState = formState
+                  newState.addedReason = i.target.value;
+                  setFormState(newState);
+                }}
+              />
+            </Form.Group>
+            <Form.Label>Extention Reason</Form.Label>
+            <Form.Group controlId={`formBasicExtReason ${card.taskId}`}>
+              <Form.Control
+                required={true}
+                type="reason"
+                defaultValue={card.extensionReason}
+                onChange={(i) => {
+                  const newState = formState;
+                  // const newState = formState
+                  newState.extensionReason = i.target.value;
                   setFormState(newState);
                 }}
               />
