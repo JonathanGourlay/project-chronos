@@ -143,57 +143,11 @@ export const KanbanBoard = () => {
     const boards = await apiClient.getUserProjects(userId);
     setState({ ...state, boards: boards });
   };
-
-  const getBoards = async (token: string) => {
-    const boards = await apiClient.getBoards(token);
-    setState({ ...state, boards: boards });
-  };
-  // const getBoardById = async (token: string, boardId: string) => {
-  //   var request = new GetBoardByIdRequest();
-  //   request.boardId = boardId;
-  //   request.token = token;
-  //   const board = await apiClient.getBoardById(request);
-  //   setState((prev) => {
-  //     var newState = prev;
-  //     newState.selectedBoard = board;
-  //     if (newState === prev) {
-  //       return prev;
-  //     }
-  //     return newState;
-  //   });
-  //   // setState({ selectedBoard: board });
-  // };
-  const moveCard = async (
-    token: string,
-    cardId: string,
-    newPosition: string,
-    boardId: string
-  ) => {
-    if (activeUser?.accessToken) {
-      var moveRequest = new MoveCardRequest();
-      moveRequest.token = activeUser!.accessToken;
-      moveRequest.cardId = cardId;
-      moveRequest.newPosition = newPosition;
-      moveRequest.boardId = boardId;
-      await apiClient.moveCard(moveRequest);
-    }
-  };
-  const deleteCard = async (token: string, cardId: string) => {
-    if (activeUser?.accessToken) {
-      var deleteRequest = new DeleteCardRequest();
-      deleteRequest.token = activeUser!.accessToken;
-      deleteRequest.cardId = cardId;
-      await apiClient.deleteCard(deleteRequest);
-    }
-  };
-
   const addItemToColumn = async (index: number, form: TaskDto) => {
+    console.log(form, index, "lol");
     setState((prev) => {
       const newState = prev;
-      if (
-        newState.selectedBoard.columns &&
-        newState.selectedBoard.columns[index].tasks
-      ) {
+      if (newState.selectedBoard.columns) {
         newState.selectedBoard.columns[index].tasks === undefined
           ? (newState.selectedBoard.columns[index].tasks = new Array<TaskDto>(
               new TaskDto(form)
@@ -263,7 +217,10 @@ export const KanbanBoard = () => {
     }
   };
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragStart = (result: DropResult) => {
+    // console.log(result);
+  };
+  const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     // dropped outside the list
     if (!destination) {
@@ -280,20 +237,26 @@ export const KanbanBoard = () => {
       const destColumn = state.selectedBoard.columns.find(
         (column) => column.columnId === dInd
       );
+      const destColumnIndex = state.selectedBoard.columns.findIndex(
+        (column) => column.columnId === dInd
+      );
       if (sInd !== dInd) {
+        console.log(destColumnIndex);
         if (
           activeUser?.accessToken &&
           state.cardId &&
           sourceColumn &&
           destColumn &&
-          sourceColumn.tasks === undefined &&
           destColumn.tasks === undefined
         ) {
-          const res = addItemToColumn(
-            sInd,
-            sourceColumn!.tasks![Number(state.cardId)]
+          const t = sourceColumn!.tasks!.find(
+            (task) => task.taskId == Number(state.cardId)
           );
-          const del = deleteCard(activeUser?.accessToken, state.cardId);
+          if (t !== undefined) {
+            console.log("t", t);
+            const res = await addItemToColumn(destColumnIndex, t);
+            // sourceColumn!.tasks?.splice(Number(state.cardId));
+          }
         }
         if (
           sourceColumn &&
@@ -317,29 +280,13 @@ export const KanbanBoard = () => {
               const destchange = newState.selectedBoard.columns.findIndex(
                 (column) => column.columnId === dInd
               );
-              console.log(sourechange, destchange);
+              // console.log(sourechange, destchange);
               newState.selectedBoard.columns[sourechange].tasks = result[sInd];
               newState.selectedBoard.columns[destchange].tasks = result[dInd];
             }
             return newState;
           });
         }
-      }
-      var destId = state.selectedBoard.columns[dInd]?.trelloColumnId;
-      if (
-        activeUser?.accessToken &&
-        state.selectedBoard.columns[sInd] &&
-        state.selectedBoard.columns[sInd].tasks &&
-        activeUser.role === "Admin" &&
-        destId !== undefined &&
-        state.cardId
-      ) {
-        moveCard(
-          activeUser?.accessToken,
-          state.trelloCardId,
-          destId,
-          state.selectedBoard.trelloProjectId
-        );
       }
     }
   };
@@ -404,18 +351,9 @@ export const KanbanBoard = () => {
         addColumn={addColumn}
       />
 
-      {/* <UpdateCardModal
-        card={state.card ? state.card : new TaskDto()}
-        cardModalVisible={state.updateCardModalVisible}
-        setState={setState}
-        projectId={
-          state.selectedBoard.projectId ? state.selectedBoard.projectId : 0
-        }
-      /> */}
-
       <div style={{ display: "flex" }}>
         {state.boardState ? (
-          <DragDropContext onDragEnd={onDragEnd}>
+          <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
             {state.selectedBoard !== undefined &&
             state.selectedBoard.columns !== undefined
               ? state.selectedBoard.columns.map((column, index) => {
@@ -438,7 +376,9 @@ export const KanbanBoard = () => {
                               addItemToColumn={addItemToColumn}
                               setState={setState}
                               cardId={
-                                state.selectedBoard.columns
+                                state.selectedBoard.columns &&
+                                state.selectedBoard.columns[state.columnIndex]
+                                  .tasks
                                   ? state.selectedBoard.columns[
                                       state.columnIndex
                                     ].tasks!.length
@@ -495,7 +435,7 @@ export const KanbanBoard = () => {
                                               onMouseDown={() => {
                                                 setState({
                                                   cardId:
-                                                    card.taskId?.toString(),
+                                                    card.taskId!.toString(),
                                                 });
                                               }}
                                               style={{
@@ -543,14 +483,6 @@ export const KanbanBoard = () => {
                                                       }
                                                       return newState;
                                                     });
-                                                    if (
-                                                      activeUser?.accessToken
-                                                    ) {
-                                                      deleteCard(
-                                                        activeUser!.accessToken,
-                                                        card.trelloTaskId
-                                                      );
-                                                    }
                                                   }}
                                                 >
                                                   delete

@@ -41,6 +41,10 @@ export interface IClient {
      */
     getUserProjects(body: number | undefined): Promise<ProjectDto[]>;
     /**
+     * @return Success
+     */
+    getAdminProjects(): Promise<ProjectDto[]>;
+    /**
      * @param body (optional) 
      * @return Success
      */
@@ -447,6 +451,54 @@ export class Client implements IClient {
     }
 
     protected processGetUserProjects(response: Response): Promise<ProjectDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ProjectDto.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ProjectDto[]>(<any>null);
+    }
+
+    /**
+     * @return Success
+     */
+    getAdminProjects(): Promise<ProjectDto[]> {
+        let url_ = this.baseUrl + "/Project/GetAdminProjects";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ = <RequestInit>{
+            method: "POST",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAdminProjects(_response);
+        });
+    }
+
+    protected processGetAdminProjects(response: Response): Promise<ProjectDto[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 500) {

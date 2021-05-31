@@ -37,27 +37,32 @@ const UpdateCardModal = (props: IHandlerProps) => {
 
   return (
     <>
-      <Modal autoFocus={false} show={cardModalVisible}>
+      <Modal
+        autoFocus={false}
+        show={cardModalVisible}
+        onShow={() => {
+          console.log("load");
+          setFormState((prev) => {
+            const newState = prev;
+            newState.taskName = card.taskName;
+            newState.taskArchived = "false";
+            newState.taskDeleted = "false";
+            newState.taskDone = "false";
+            newState.startTime = card.startTime;
+            newState.comments = card.comments;
+            newState.expectedEndTime = card.expectedEndTime;
+            newState.endTime = card.expectedEndTime;
+            newState.trelloTaskId = card.trelloTaskId;
+            return newState;
+          });
+        }}
+      >
         <Modal.Header>
           <Modal.Title>Update Card</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
           <Form
-            onFocus={() => {
-              console.log("load");
-              setFormState((prev) => {
-                const newState = prev;
-                newState.taskName = card.taskName;
-                newState.taskArchived = "false";
-                newState.taskDeleted = "false";
-                newState.taskDone = "false";
-                newState.startTime = card.startTime;
-                newState.expectedEndTime = card.expectedEndTime;
-                newState.endTime = card.expectedEndTime;
-                return newState;
-              });
-            }}
             onSubmit={async (e) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
@@ -212,7 +217,6 @@ const UpdateCardModal = (props: IHandlerProps) => {
                 defaultValue={card.addedReason}
                 onChange={(i) => {
                   const newState = formState;
-                  // const newState = formState
                   newState.addedReason = i.target.value;
                   setFormState(newState);
                 }}
@@ -226,7 +230,6 @@ const UpdateCardModal = (props: IHandlerProps) => {
                 defaultValue={card.extensionReason}
                 onChange={(i) => {
                   const newState = formState;
-                  // const newState = formState
                   newState.extensionReason = i.target.value;
                   setFormState(newState);
                 }}

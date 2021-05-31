@@ -18,7 +18,6 @@ import apiClient from "../API/client";
 import { useToasts } from "react-toast-notifications";
 import {
   ColumnDto,
-  ColumnObject,
   ProjectDto,
   TaskDto,
   MoveCardRequest,
@@ -26,8 +25,6 @@ import {
   DeleteCardRequest,
   CreateTask,
   CreateColumn,
-  UpdateTask,
-  CreateProject,
 } from "../API/client/client";
 import { useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
@@ -135,6 +132,7 @@ export interface stateObject {
   card: TaskDto;
   boardState: ColumnDto[][];
   boards: ProjectDto[];
+  projects: ProjectDto[];
   selectedBoard: ProjectDto;
 }
 
@@ -148,6 +146,11 @@ export const KanbanBoardAdmin = () => {
   }, []);
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
+
+  const getDbBoards = async () => {
+    const boards = await apiClient.getAdminProjects();
+    setState({ ...state, projects: boards });
+  };
 
   const getBoards = async (token: string) => {
     const boards = await apiClient.getBoards(token);
@@ -311,7 +314,6 @@ export const KanbanBoardAdmin = () => {
           destColumn.tasks &&
           state.cardId
         ) {
-          console.log("HIT2");
           const result = move(
             sourceColumn.tasks,
             destColumn.tasks,
@@ -336,14 +338,22 @@ export const KanbanBoardAdmin = () => {
         }
       }
       var destId = state.selectedBoard.columns[dInd]?.trelloColumnId;
+      console.log("hit");
+      console.log(
+        activeUser?.accessToken,
+        state.selectedBoard.columns[sInd],
+        state.selectedBoard.columns[sInd].tasks,
+        destId,
+        state.cardId
+      );
       if (
         activeUser?.accessToken &&
         state.selectedBoard.columns[sInd] &&
         state.selectedBoard.columns[sInd].tasks &&
-        activeUser.role === "Admin" &&
         destId !== undefined &&
         state.cardId
       ) {
+        console.log("move");
         moveCard(
           activeUser?.accessToken,
           state.trelloCardId,
@@ -356,6 +366,43 @@ export const KanbanBoardAdmin = () => {
 
   return (
     <div>
+      {state.projects ? (
+        <Dropdown>
+          <Dropdown.Toggle variant="success" id="dropdown-basic">
+            {state.selectedBoard ? state.selectedBoard.projectName : "Projects"}
+          </Dropdown.Toggle>
+
+          <Dropdown.Menu>
+            {state.projects.map((board) => (
+              <>
+                <Dropdown.Item
+                  onSelect={() => {
+                    setState({
+                      selectedBoard: board,
+                    });
+                    // modal appears to fill in project information such as timescales
+                  }}
+                >
+                  {board.projectName}
+                </Dropdown.Item>
+                <Dropdown.Divider />
+              </>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      ) : (
+        <Button
+          type="button"
+          variant="info"
+          className="m-1"
+          onClick={() => {
+            //NOTE - change this to the logged in users key
+            getDbBoards();
+          }}
+        >
+          Get Projects
+        </Button>
+      )}
       {state.boards ? (
         <Dropdown>
           <Dropdown.Toggle variant="success" id="dropdown-basic">
@@ -384,22 +431,24 @@ export const KanbanBoardAdmin = () => {
           </Dropdown.Menu>
         </Dropdown>
       ) : (
-        <Button
-          type="button"
-          variant="info"
-          className="m-1"
-          onClick={() => {
-            //NOTE - change this to the logged in users key
-            activeUser &&
-            activeUser !== undefined &&
-            activeUser.accessToken &&
-            activeUser.role === "Admin"
-              ? getBoards(activeUser.accessToken)
-              : console.log("missed");
-          }}
-        >
-          Get Boards
-        </Button>
+        <>
+          <Button
+            type="button"
+            variant="info"
+            className="m-1"
+            onClick={() => {
+              //NOTE - change this to the logged in users key
+              activeUser &&
+              activeUser !== undefined &&
+              activeUser.accessToken &&
+              activeUser.role === "Admin"
+                ? getBoards(activeUser.accessToken)
+                : console.log("missed");
+            }}
+          >
+            Get Trello Boards
+          </Button>
+        </>
       )}
       <Button
         type="button"
@@ -457,7 +506,9 @@ export const KanbanBoardAdmin = () => {
                               addItemToColumn={addItemToColumn}
                               setState={setState}
                               cardId={
-                                state.selectedBoard.columns
+                                state.selectedBoard.columns &&
+                                state.selectedBoard.columns[state.columnIndex]
+                                  .tasks
                                   ? state.selectedBoard.columns[
                                       state.columnIndex
                                     ].tasks!.length
@@ -512,12 +563,12 @@ export const KanbanBoardAdmin = () => {
                                           >
                                             <Card
                                               key={card.taskId}
-                                              // onMouseDown={() => {
-                                              //   setState({
-                                              //     cardId:
-                                              //       card.taskId?.toString(),
-                                              //   });
-                                              // }}
+                                              onMouseDown={() => {
+                                                setState({
+                                                  cardId:
+                                                    card.taskId?.toString(),
+                                                });
+                                              }}
                                               style={{
                                                 display: "flex",
                                                 justifyContent: "space-around",
