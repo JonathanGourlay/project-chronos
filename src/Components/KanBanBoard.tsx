@@ -31,6 +31,7 @@ import {
 import { useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
 import UpdateCardModal from "./UpdateCardModal";
+import { BsPlay, BsStop } from "react-icons/bs";
 
 export type BoardCard = TaskDto;
 export type Board = ColumnDto[][];
@@ -144,7 +145,6 @@ export const KanbanBoard = () => {
     setState({ ...state, boards: boards });
   };
   const addItemToColumn = async (index: number, form: TaskDto) => {
-    console.log(form, index, "lol");
     setState((prev) => {
       const newState = prev;
       if (newState.selectedBoard.columns) {
@@ -168,8 +168,8 @@ export const KanbanBoard = () => {
       request.endTime = form.expectedEndTime;
       request.pointsTotal = form.points;
       request.addedPointsTotal = form.addedPoints;
-      request.addedReason = "this is a reason";
-      request.extensionReason = "form.extensionReason";
+      request.addedReason = form.addedReason;
+      request.extensionReason = form.extensionReason;
       request.taskArchived = "false";
       request.taskDeleted = "false";
       request.taskDone = "false";
@@ -240,6 +240,9 @@ export const KanbanBoard = () => {
       const destColumnIndex = state.selectedBoard.columns.findIndex(
         (column) => column.columnId === dInd
       );
+      const sourceColumnIndex = state.selectedBoard.columns.findIndex(
+        (column) => column.columnId === sInd
+      );
       if (sInd !== dInd) {
         console.log(destColumnIndex);
         if (
@@ -250,42 +253,52 @@ export const KanbanBoard = () => {
           destColumn.tasks === undefined
         ) {
           const t = sourceColumn!.tasks!.find(
-            (task) => task.taskId == Number(state.cardId)
+            (task) => task.taskId === Number(state.cardId)
           );
           if (t !== undefined) {
             console.log("t", t);
             const res = await addItemToColumn(destColumnIndex, t);
-            // sourceColumn!.tasks?.splice(Number(state.cardId));
+            setState((prev) => {
+              const newState = prev;
+              if (newState.selectedBoard?.columns) {
+                newState.selectedBoard.columns[sourceColumnIndex].tasks?.filter(
+                  (task) => task.taskId === Number(state.cardId)
+                );
+              }
+              return newState;
+            });
           }
-        }
-        if (
-          sourceColumn &&
-          destColumn &&
-          sourceColumn.tasks &&
-          destColumn.tasks &&
-          state.cardId
-        ) {
-          const result = move(
-            sourceColumn.tasks,
-            destColumn.tasks,
-            source,
-            destination
-          );
-          setState((prev) => {
-            const newState = prev;
-            if (result !== undefined && newState.selectedBoard.columns) {
-              const sourechange = newState.selectedBoard.columns.findIndex(
-                (column) => column.columnId === sInd
-              );
-              const destchange = newState.selectedBoard.columns.findIndex(
-                (column) => column.columnId === dInd
-              );
-              // console.log(sourechange, destchange);
-              newState.selectedBoard.columns[sourechange].tasks = result[sInd];
-              newState.selectedBoard.columns[destchange].tasks = result[dInd];
-            }
-            return newState;
-          });
+        } else {
+          if (
+            sourceColumn &&
+            destColumn &&
+            sourceColumn.tasks &&
+            destColumn.tasks &&
+            state.cardId
+          ) {
+            const result = move(
+              sourceColumn.tasks,
+              destColumn.tasks,
+              source,
+              destination
+            );
+            setState((prev) => {
+              const newState = prev;
+              if (result !== undefined && newState.selectedBoard.columns) {
+                const sourechange = newState.selectedBoard.columns.findIndex(
+                  (column) => column.columnId === sInd
+                );
+                const destchange = newState.selectedBoard.columns.findIndex(
+                  (column) => column.columnId === dInd
+                );
+                // console.log(sourechange, destchange);
+                newState.selectedBoard.columns[sourechange].tasks =
+                  result[sInd];
+                newState.selectedBoard.columns[destchange].tasks = result[dInd];
+              }
+              return newState;
+            });
+          }
         }
       }
     }
@@ -448,6 +461,30 @@ export const KanbanBoard = () => {
                                                 border: "none",
                                               }}
                                             >
+                                              <div
+                                                style={{
+                                                  display: "flex",
+                                                  justifyContent:
+                                                    "space-between",
+                                                }}
+                                              >
+                                                <Button
+                                                  onClick={() => {}}
+                                                  style={{
+                                                    width: 40,
+                                                  }}
+                                                >
+                                                  <BsPlay />
+                                                </Button>
+                                                <Button
+                                                  onClick={() => {}}
+                                                  style={{
+                                                    width: 40,
+                                                  }}
+                                                >
+                                                  <BsStop />
+                                                </Button>
+                                              </div>
                                               <Card.Title>
                                                 {card.points}
                                               </Card.Title>

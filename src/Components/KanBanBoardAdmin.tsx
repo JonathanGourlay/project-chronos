@@ -9,15 +9,25 @@ import {
   DraggingStyle,
   DragStart,
 } from "react-beautiful-dnd";
-import { BsThreeDots } from "react-icons/bs";
 import { Button, Card, Container, Dropdown, Toast } from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
 import AddCardModal from "./AddCardModal";
 import AddColumnModal from "./AddColumnModal";
-import apiClient from "../API/client";
+import apiClient from "../API/client/";
 import { useToasts } from "react-toast-notifications";
 import {
+  BsThreeDots,
+  BsPlay,
+  BsStop,
+  BsPersonPlus,
+  BsTrash,
+  BsArrowCounterclockwise,
+  BsFillPauseFill,
+} from "react-icons/bs";
+
+import {
   ColumnDto,
+  ColumnObject,
   ProjectDto,
   TaskDto,
   MoveCardRequest,
@@ -25,16 +35,20 @@ import {
   DeleteCardRequest,
   CreateTask,
   CreateColumn,
+  UpdateTask,
+  CreateProject,
+  UserDto,
+  CreateTimeLog,
 } from "../API/client/client";
 import { useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
 import UpdateCardModal from "./UpdateCardModal";
 import AddProjectModal from "./AddProjectModal";
+import AssignUserModal from "./AssignTaskUserModal";
+import AssignProjectUserModal from "./AssignProjectUserModal";
+import Timer from "react-compound-timer/build";
 
-// export type BoardCard = { id: string; comments: string; title: string };
 export type BoardCard = TaskDto;
-// export type Column = { id: string; title: string; cards: Array<BoardCard> };
-// export type Column = ColumnDto;
 export type Board = ColumnDto[][];
 
 const grid = 8;
@@ -81,10 +95,6 @@ function move(
     const destClone = Array.from(destination);
     const sInd = +droppableSource.droppableId;
     const [removed] = sourceClone.splice(droppableSource.index, 1);
-    // [removed][0].taskId = destClone.length + 1;
-    // sourceClone.map((item, index) => {
-    //   item.taskId = index + 1;
-    // });
     destClone.splice(droppableDestination.index, 0, removed);
     const result: { [key: string]: Array<BoardCard> } = {};
     result[sInd] = sourceClone;
@@ -125,6 +135,8 @@ export interface stateObject {
   projectModalVisible: boolean;
   cardModalVisible: boolean;
   updateCardModalVisible: boolean;
+  assignModalVisible: boolean;
+  assignProjectModalVisible: boolean;
   columnModalVisible: boolean;
   columnIndex: number;
   cardId: string;
@@ -134,6 +146,8 @@ export interface stateObject {
   boards: ProjectDto[];
   projects: ProjectDto[];
   selectedBoard: ProjectDto;
+  users: Array<UserDto>;
+  counter: number;
 }
 
 export const KanbanBoardAdmin = () => {
@@ -143,6 +157,7 @@ export const KanbanBoardAdmin = () => {
 
   React.useEffect(() => {
     setState({ columnIndex: 0, boardState: [] });
+    getUsers();
   }, []);
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
@@ -155,21 +170,6 @@ export const KanbanBoardAdmin = () => {
   const getBoards = async (token: string) => {
     const boards = await apiClient.getBoards(token);
     setState({ ...state, boards: boards });
-  };
-  const getBoardById = async (token: string, boardId: string) => {
-    var request = new GetBoardByIdRequest();
-    request.boardId = boardId;
-    request.token = token;
-    const board = await apiClient.getBoardById(request);
-    setState((prev) => {
-      var newState = prev;
-      newState.selectedBoard = board;
-      if (newState === prev) {
-        return prev;
-      }
-      return newState;
-    });
-    // setState({ selectedBoard: board });
   };
   const moveCard = async (
     token: string,
@@ -186,6 +186,17 @@ export const KanbanBoardAdmin = () => {
       await apiClient.moveCard(moveRequest);
     }
   };
+
+  const getUsers = async () => {
+    const users = await apiClient.getUsers();
+    console.log(users);
+    setState((prev) => {
+      const newState = prev;
+      newState.users = users;
+      return newState;
+    });
+  };
+
   const deleteCard = async (token: string, cardId: string) => {
     if (activeUser?.accessToken) {
       var deleteRequest = new DeleteCardRequest();
@@ -194,14 +205,10 @@ export const KanbanBoardAdmin = () => {
       await apiClient.deleteCard(deleteRequest);
     }
   };
-
   const addItemToColumn = async (index: number, form: TaskDto) => {
     setState((prev) => {
       const newState = prev;
-      if (
-        newState.selectedBoard.columns &&
-        newState.selectedBoard.columns[index].tasks
-      ) {
+      if (newState.selectedBoard.columns) {
         newState.selectedBoard.columns[index].tasks === undefined
           ? (newState.selectedBoard.columns[index].tasks = new Array<TaskDto>(
               new TaskDto(form)
@@ -214,7 +221,6 @@ export const KanbanBoardAdmin = () => {
     });
     if (state.selectedBoard.columns) {
       const request = new CreateTask();
-      //console.log(state.selectedBoard.columns[index]);
       request.columnId = state.selectedBoard.columns[index].columnId;
       request.taskName = form.taskName;
       request.comments = form.comments;
@@ -223,13 +229,11 @@ export const KanbanBoardAdmin = () => {
       request.endTime = form.expectedEndTime;
       request.pointsTotal = form.points;
       request.addedPointsTotal = form.addedPoints;
-      request.addedReason = "this is a reason";
-      request.extensionReason = "form.extensionReason";
+      request.addedReason = form.addedReason;
+      request.extensionReason = form.extensionReason;
       request.taskArchived = "false";
       request.taskDeleted = "false";
       request.taskDone = "false";
-      // console.log(request);
-      // console.log("Req");
       const addTask = await apiClient.createTask(request);
       addToast(
         <Toast>
@@ -274,7 +278,10 @@ export const KanbanBoardAdmin = () => {
     }
   };
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragStart = (result: DropResult) => {
+    // console.log(result);
+  };
+  const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     // dropped outside the list
     if (!destination) {
@@ -291,105 +298,164 @@ export const KanbanBoardAdmin = () => {
       const destColumn = state.selectedBoard.columns.find(
         (column) => column.columnId === dInd
       );
+      const destColumnIndex = state.selectedBoard.columns.findIndex(
+        (column) => column.columnId === dInd
+      );
+      const sourceColumnIndex = state.selectedBoard.columns.findIndex(
+        (column) => column.columnId === sInd
+      );
       if (sInd !== dInd) {
+        console.log(destColumnIndex);
         if (
           activeUser?.accessToken &&
           state.cardId &&
           sourceColumn &&
           destColumn &&
-          sourceColumn.tasks === undefined &&
           destColumn.tasks === undefined
         ) {
-          //console.log("added");
-          const res = addItemToColumn(
-            sInd,
-            sourceColumn!.tasks![Number(state.cardId)]
+          const t = sourceColumn!.tasks!.find(
+            (task) => task.taskId === Number(state.cardId)
           );
-          const del = deleteCard(activeUser?.accessToken, state.cardId);
+          if (t !== undefined) {
+            console.log("t", t);
+            const res = await addItemToColumn(destColumnIndex, t);
+            setState((prev) => {
+              const newState = prev;
+              if (newState.selectedBoard?.columns) {
+                newState.selectedBoard.columns[sourceColumnIndex].tasks?.filter(
+                  (task) => task.taskId === Number(state.cardId)
+                );
+              }
+              return newState;
+            });
+          }
+        } else {
+          if (
+            sourceColumn &&
+            destColumn &&
+            sourceColumn.tasks &&
+            destColumn.tasks &&
+            state.cardId
+          ) {
+            const result = move(
+              sourceColumn.tasks,
+              destColumn.tasks,
+              source,
+              destination
+            );
+            setState((prev) => {
+              const newState = prev;
+              if (result !== undefined && newState.selectedBoard.columns) {
+                const sourechange = newState.selectedBoard.columns.findIndex(
+                  (column) => column.columnId === sInd
+                );
+                const destchange = newState.selectedBoard.columns.findIndex(
+                  (column) => column.columnId === dInd
+                );
+                // console.log(sourechange, destchange);
+                newState.selectedBoard.columns[sourechange].tasks =
+                  result[sInd];
+                newState.selectedBoard.columns[destchange].tasks = result[dInd];
+              }
+              return newState;
+            });
+          }
         }
+        const moveCard = async (
+          token: string,
+          cardId: string,
+          newPosition: string,
+          boardId: string
+        ) => {
+          if (activeUser?.accessToken) {
+            var moveRequest = new MoveCardRequest();
+            moveRequest.token = activeUser!.accessToken;
+            moveRequest.cardId = cardId;
+            moveRequest.newPosition = newPosition;
+            moveRequest.boardId = boardId;
+            await apiClient.moveCard(moveRequest);
+          }
+        };
+        const deleteCard = async (token: string, cardId: string) => {
+          if (activeUser?.accessToken) {
+            var deleteRequest = new DeleteCardRequest();
+            deleteRequest.token = activeUser!.accessToken;
+            deleteRequest.cardId = cardId;
+            await apiClient.deleteCard(deleteRequest);
+          }
+        };
+        var destId = state.selectedBoard.columns[dInd]?.trelloColumnId;
+        console.log("hit");
+        console.log(
+          activeUser?.accessToken,
+          state.selectedBoard.columns[sInd],
+          state.selectedBoard.columns[sInd].tasks,
+          destId,
+          state.cardId
+        );
         if (
-          sourceColumn &&
-          destColumn &&
-          sourceColumn.tasks &&
-          destColumn.tasks &&
+          activeUser?.accessToken &&
+          state.selectedBoard.columns[sInd] &&
+          state.selectedBoard.columns[sInd].tasks &&
+          destId !== undefined &&
           state.cardId
         ) {
-          const result = move(
-            sourceColumn.tasks,
-            destColumn.tasks,
-            source,
-            destination
+          console.log("move");
+          moveCard(
+            activeUser?.accessToken,
+            state.trelloCardId,
+            destId,
+            state.selectedBoard.trelloProjectId
           );
-          setState((prev) => {
-            const newState = prev;
-            if (result !== undefined && newState.selectedBoard.columns) {
-              const sourechange = newState.selectedBoard.columns.findIndex(
-                (column) => column.columnId === sInd
-              );
-              const destchange = newState.selectedBoard.columns.findIndex(
-                (column) => column.columnId === dInd
-              );
-              console.log(sourechange, destchange);
-              newState.selectedBoard.columns[sourechange].tasks = result[sInd];
-              newState.selectedBoard.columns[destchange].tasks = result[dInd];
-            }
-            return newState;
-          });
         }
-      }
-      var destId = state.selectedBoard.columns[dInd]?.trelloColumnId;
-      console.log("hit");
-      console.log(
-        activeUser?.accessToken,
-        state.selectedBoard.columns[sInd],
-        state.selectedBoard.columns[sInd].tasks,
-        destId,
-        state.cardId
-      );
-      if (
-        activeUser?.accessToken &&
-        state.selectedBoard.columns[sInd] &&
-        state.selectedBoard.columns[sInd].tasks &&
-        destId !== undefined &&
-        state.cardId
-      ) {
-        console.log("move");
-        moveCard(
-          activeUser?.accessToken,
-          state.trelloCardId,
-          destId,
-          state.selectedBoard.trelloProjectId
-        );
       }
     }
   };
 
   return (
     <div>
+      {state.selectedBoard ? (
+        <Button
+          type="button"
+          variant="success"
+          className="btn-sm w-50"
+          onClick={() => {
+            setState({
+              assignProjectModalVisible: true,
+            });
+          }}
+        >
+          <BsPersonPlus />
+        </Button>
+      ) : undefined}
       {state.projects ? (
-        <Dropdown>
-          <Dropdown.Toggle variant="success" id="dropdown-basic">
-            {state.selectedBoard ? state.selectedBoard.projectName : "Projects"}
-          </Dropdown.Toggle>
+        <>
+          <Dropdown>
+            <Dropdown.Toggle variant="success" id="dropdown-basic">
+              {state.selectedBoard
+                ? state.selectedBoard.projectName
+                : "Projects"}
+            </Dropdown.Toggle>
 
-          <Dropdown.Menu>
-            {state.projects.map((board) => (
-              <>
-                <Dropdown.Item
-                  onSelect={() => {
-                    setState({
-                      selectedBoard: board,
-                    });
-                    // modal appears to fill in project information such as timescales
-                  }}
-                >
-                  {board.projectName}
-                </Dropdown.Item>
-                <Dropdown.Divider />
-              </>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
+            <Dropdown.Menu>
+              {state.projects.map((board) => (
+                <>
+                  <Dropdown.Item
+                    onSelect={() => {
+                      setState({
+                        selectedBoard: board,
+                      });
+                      // modal appears to fill in project information such as timescales
+                    }}
+                  >
+                    {board.projectName}
+                  </Dropdown.Item>
+                  <Dropdown.Divider />
+                </>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+        </>
       ) : (
         <Button
           type="button"
@@ -404,32 +470,34 @@ export const KanbanBoardAdmin = () => {
         </Button>
       )}
       {state.boards ? (
-        <Dropdown>
-          <Dropdown.Toggle variant="success" id="dropdown-basic">
-            {state.selectedBoard
-              ? state.selectedBoard.projectName
-              : "Generate Project"}
-          </Dropdown.Toggle>
+        <div>
+          <Dropdown>
+            <Dropdown.Toggle variant="success" id="dropdown-basic">
+              {state.selectedBoard
+                ? state.selectedBoard.projectName
+                : "Generate Project"}
+            </Dropdown.Toggle>
 
-          <Dropdown.Menu>
-            {state.boards.map((board) => (
-              <>
-                <Dropdown.Item
-                  onSelect={() => {
-                    setState({
-                      selectedBoard: board,
-                      projectModalVisible: true,
-                    });
-                    // modal appears to fill in project information such as timescales
-                  }}
-                >
-                  {board.projectName}
-                </Dropdown.Item>
-                <Dropdown.Divider />
-              </>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
+            <Dropdown.Menu>
+              {state.boards.map((board) => (
+                <>
+                  <Dropdown.Item
+                    onSelect={() => {
+                      setState({
+                        selectedBoard: board,
+                        projectModalVisible: true,
+                      });
+                      // modal appears to fill in project information such as timescales
+                    }}
+                  >
+                    {board.projectName}
+                  </Dropdown.Item>
+                  <Dropdown.Divider />
+                </>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+        </div>
       ) : (
         <>
           <Button
@@ -481,9 +549,22 @@ export const KanbanBoardAdmin = () => {
         setState={setState}
         columnId={state.columnIndex}
       />
+      <AssignUserModal
+        card={state.card ? state.card : new TaskDto()}
+        modalVisible={state.assignModalVisible}
+        setState={setState}
+        users={state.users}
+      />
+      <AssignProjectUserModal
+        project={state.selectedBoard ? state.selectedBoard : new ProjectDto()}
+        modalVisible={state.assignProjectModalVisible}
+        setState={setState}
+        users={state.users}
+      />
+
       <div style={{ display: "flex" }}>
         {state.boardState ? (
-          <DragDropContext onDragEnd={onDragEnd}>
+          <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
             {state.selectedBoard !== undefined &&
             state.selectedBoard.columns !== undefined
               ? state.selectedBoard.columns.map((column, index) => {
@@ -523,7 +604,6 @@ export const KanbanBoardAdmin = () => {
                           )}
 
                           <>
-                            <h1>{state.selectedBoard.projectId}</h1>
                             <h1>{column.columnId}</h1>
                             <h1>{column.columnName}</h1>
                             <Button
@@ -566,7 +646,8 @@ export const KanbanBoardAdmin = () => {
                                               onMouseDown={() => {
                                                 setState({
                                                   cardId:
-                                                    card.taskId?.toString(),
+                                                    card.taskId!.toString(),
+                                                  card: card,
                                                 });
                                               }}
                                               style={{
@@ -579,38 +660,116 @@ export const KanbanBoardAdmin = () => {
                                                 border: "none",
                                               }}
                                             >
-                                              <Button
-                                                onClick={() => {
-                                                  setState({
-                                                    cardId:
-                                                      card.taskId?.toString(),
-                                                    card: card,
-                                                    updateCardModalVisible:
-                                                      true,
-                                                    trelloCardId:
-                                                      card.trelloTaskId,
-                                                    columnIndex:
-                                                      column.columnId,
-                                                  });
+                                              <Card.Header
+                                                style={{
+                                                  display: "flex",
+                                                  justifyContent:
+                                                    "space-between",
                                                 }}
                                               >
-                                                <BsThreeDots />
-                                              </Button>
+                                                <h4>
+                                                  <Timer
+                                                    initialTime={1}
+                                                    startImmediately={false}
+                                                  >
+                                                    {({
+                                                      start,
+                                                      resume,
+                                                      pause,
+                                                      stop,
+                                                      reset,
+                                                      timerState,
+                                                    }) => (
+                                                      <React.Fragment>
+                                                        <div>
+                                                          <Timer.Days /> :{" "}
+                                                          <Timer.Hours /> :{" "}
+                                                          <Timer.Minutes /> :{" "}
+                                                          <Timer.Seconds />{" "}
+                                                        </div>
 
-                                              <Card.Title>
-                                                {card.points}
-                                              </Card.Title>
-                                              <Card.Title>
-                                                {card.taskId}
-                                              </Card.Title>
-                                              <Card.Title>
-                                                {card.taskName}
-                                              </Card.Title>
-                                              <Card.Text>
-                                                {card.comments}
-                                              </Card.Text>
+                                                        <br />
+                                                        <div>
+                                                          <Button
+                                                            onClick={start}
+                                                            style={{
+                                                              width: 40,
+                                                            }}
+                                                          >
+                                                            <BsPlay />
+                                                          </Button>
+                                                          <Button
+                                                            onClick={pause}
+                                                          >
+                                                            <BsFillPauseFill />
+                                                          </Button>
+
+                                                          <Button
+                                                            onClick={async () => {
+                                                              stop();
+                                                              // Create Timelog Modal
+                                                              // let newTimeLog = new CreateTimeLog();
+                                                              // await apiClient.createTimeLog(newTimeLog);
+                                                            }}
+                                                          >
+                                                            <BsStop />
+                                                          </Button>
+                                                          <Button
+                                                            onClick={reset}
+                                                          >
+                                                            <BsArrowCounterclockwise />
+                                                          </Button>
+                                                          <Button
+                                                            onClick={() => {
+                                                              setState({
+                                                                cardId:
+                                                                  card.taskId?.toString(),
+                                                                card: card,
+                                                                updateCardModalVisible:
+                                                                  true,
+                                                                trelloCardId:
+                                                                  card.trelloTaskId,
+                                                                columnIndex:
+                                                                  column.columnId,
+                                                              });
+                                                            }}
+                                                            style={{
+                                                              width: 40,
+                                                            }}
+                                                          >
+                                                            <BsThreeDots />
+                                                          </Button>
+                                                        </div>
+                                                      </React.Fragment>
+                                                    )}
+                                                  </Timer>
+                                                </h4>
+                                              </Card.Header>
 
                                               <Card.Body className="text-center p-0">
+                                                <Card.Title>
+                                                  {state.counter}
+                                                </Card.Title>
+                                                <Card.Title>
+                                                  {card.points}
+                                                </Card.Title>
+                                                <Card.Title>
+                                                  {card.taskId}
+                                                </Card.Title>
+                                                <Card.Title>
+                                                  {card.taskName}
+                                                </Card.Title>
+                                                <Card.Text>
+                                                  {card.comments}
+                                                </Card.Text>
+                                              </Card.Body>
+                                              <Card.Footer
+                                                style={{
+                                                  display: "flex",
+                                                  justifyContent:
+                                                    "space-between",
+                                                }}
+                                              >
                                                 <Button
                                                   type="button"
                                                   variant="danger"
@@ -632,19 +791,27 @@ export const KanbanBoardAdmin = () => {
                                                       }
                                                       return newState;
                                                     });
-                                                    if (
-                                                      activeUser?.accessToken
-                                                    ) {
-                                                      deleteCard(
-                                                        activeUser!.accessToken,
-                                                        card.trelloTaskId
-                                                      );
-                                                    }
                                                   }}
                                                 >
-                                                  delete
+                                                  <BsTrash />
                                                 </Button>
-                                              </Card.Body>
+                                                <Button
+                                                  type="button"
+                                                  variant="success"
+                                                  className="btn-sm w-50"
+                                                  style={{
+                                                    width: 40,
+                                                  }}
+                                                  onClick={() => {
+                                                    setState({
+                                                      assignModalVisible: true,
+                                                      card: card,
+                                                    });
+                                                  }}
+                                                >
+                                                  <BsPersonPlus />
+                                                </Button>
+                                              </Card.Footer>
                                             </Card>
                                           </div>
                                         );

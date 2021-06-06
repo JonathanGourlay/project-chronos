@@ -1,5 +1,13 @@
 import React from "react";
-import { Button, Modal, Form, Toast } from "react-bootstrap";
+import {
+  Button,
+  Modal,
+  Form,
+  Toast,
+  Row,
+  Col,
+  Container,
+} from "react-bootstrap";
 import { useToasts } from "react-toast-notifications";
 // import { State } from "../Scripts/GlobalState";
 // import { State } from "../Scripts/GlobalState";
@@ -56,6 +64,7 @@ const UpdateCardModal = (props: IHandlerProps) => {
             return newState;
           });
         }}
+        size="lg"
       >
         <Modal.Header>
           <Modal.Title>Update Card</Modal.Title>
@@ -96,8 +105,22 @@ const UpdateCardModal = (props: IHandlerProps) => {
                   const num = newState.selectedBoard.columns.findIndex(
                     (column) => column.columnId === columnId
                   );
-                  newState.selectedBoard.columns[num].columnId = result;
+                  //newState.selectedBoard.columns[num].columnId = result;
+                  const taskInd = newState.selectedBoard.columns[
+                    num
+                  ].tasks!.findIndex((task) => task.taskId === card.taskId);
+                  if (
+                    newState.selectedBoard.columns &&
+                    newState.selectedBoard.columns[num] &&
+                    newState.selectedBoard.columns[num].tasks &&
+                    newState.selectedBoard!.columns![num].tasks![taskInd]
+                  ) {
+                    newState.selectedBoard!.columns![num].tasks![
+                      taskInd
+                    ].points = formState.points;
+                  }
                 }
+
                 return newState;
               });
               setState({ cardModalVisible: false });
@@ -135,106 +158,138 @@ const UpdateCardModal = (props: IHandlerProps) => {
                 }}
               />
             </Form.Group>
-            <Form.Control
-              type="string"
-              value={`Current Start Date - ${card.startTime?.toLocaleDateString()}`}
-              disabled={true}
-            />
-            <Form.Group controlId={`formBasicstartDate ${card.taskId}`}>
-              <Form.Control
-                type="date"
-                name="start date"
-                isInvalid={startDate.startDate > endDate.endDate}
-                onChange={(i) => {
-                  setFormState((prev) => {
-                    const newState = prev;
-                    newState.startTime = new Date(Date.parse(i.target.value));
-                    return newState;
-                  });
-                  setStartDate({
-                    startDate: new Date(Date.parse(i.target.value)),
-                  });
-                }}
-              />
-            </Form.Group>
-            <Form.Control
-              type="string"
-              value={`Current End Date - ${card.expectedEndTime?.toLocaleDateString()}`}
-              disabled={true}
-            />
-            <Form.Group controlId={`formBasicEndDate ${card.taskId}`}>
-              <Form.Control
-                type="date"
-                name="End Date"
-                onChange={(i) => {
-                  setFormState((prev) => {
-                    const newState = prev;
-                    newState.expectedEndTime = new Date(
-                      Date.parse(i.target.value)
-                    );
-                    newState.endTime = new Date(Date.parse(i.target.value));
-                    return newState;
-                  });
-                  setEndDate({ endDate: new Date(Date.parse(i.target.value)) });
-                }}
-              />
-            </Form.Group>
-            <Form.Label>Task Points</Form.Label>
-            <Form.Group controlId={`formBasicPoints ${card.taskId}`}>
-              <Form.Control
-                type="number"
-                name="Task Points"
-                defaultValue={card.points}
-                onChange={(i) => {
-                  const newState = formState;
 
-                  newState.points = Number(i.target.value);
+            <Row>
+              <Col xs={6}>
+                <div>
+                  <Form.Group controlId={`formBasicstartDate ${card.taskId}`}>
+                    <Form.Control
+                      type="string"
+                      value={`Current Start Date - ${card.startTime?.toLocaleDateString()}`}
+                      disabled={true}
+                    />
+                    <Form.Control
+                      type="date"
+                      name="start date"
+                      isInvalid={startDate.startDate > endDate.endDate}
+                      onChange={(i) => {
+                        setFormState((prev) => {
+                          const newState = prev;
+                          newState.startTime = new Date(
+                            Date.parse(i.target.value)
+                          );
+                          return newState;
+                        });
+                        setStartDate({
+                          startDate: new Date(Date.parse(i.target.value)),
+                        });
+                      }}
+                    />
+                  </Form.Group>
+                </div>
+              </Col>
+              <Col xs={6}>
+                <div>
+                  <Form.Group controlId={`formBasicEndDate ${card.taskId}`}>
+                    <Form.Control
+                      type="string"
+                      value={`Current End Date - ${card.expectedEndTime?.toLocaleDateString()}`}
+                      disabled={true}
+                    />
+                    <Form.Control
+                      type="date"
+                      name="End Date"
+                      onChange={(i) => {
+                        setFormState((prev) => {
+                          const newState = prev;
+                          newState.expectedEndTime = new Date(
+                            Date.parse(i.target.value)
+                          );
+                          newState.endTime = new Date(
+                            Date.parse(i.target.value)
+                          );
+                          return newState;
+                        });
+                        setEndDate({
+                          endDate: new Date(Date.parse(i.target.value)),
+                        });
+                      }}
+                    />
+                  </Form.Group>
+                </div>
+              </Col>
+            </Row>
 
-                  setFormState(newState);
-                }}
-              />
-            </Form.Group>
-            <Form.Label>Task Added Points</Form.Label>
-            <Form.Group controlId={`formBasicAddedePoints ${card.taskId}`}>
-              <Form.Control
-                type="number"
-                name="Added Task Points"
-                defaultValue={card.addedPoints}
-                onChange={(i) => {
-                  const newState = formState;
+            <Row>
+              <Col xs={6} style={{ borderRight: "solid 1px #e9ecef" }}>
+                <Form.Label>Added Reason</Form.Label>
+                <Form.Group controlId={`formBasicAddedReason ${card.taskId}`}>
+                  <Form.Control
+                    required={true}
+                    type="reason"
+                    defaultValue={card.addedReason}
+                    onChange={(i) => {
+                      const newState = formState;
+                      newState.addedReason = i.target.value;
+                      setFormState(newState);
+                    }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={6}>
+                <Form.Label>Task Points</Form.Label>
+                <Form.Group controlId={`formBasicPoints ${card.taskId}`}>
+                  <Form.Control
+                    type="number"
+                    name="Task Points"
+                    defaultValue={card.points}
+                    onChange={(i) => {
+                      const newState = formState;
 
-                  newState.addedPoints = Number(i.target.value);
+                      newState.points = Number(i.target.value);
 
-                  setFormState(newState);
-                }}
-              />
-            </Form.Group>
-            <Form.Label>Added Reason</Form.Label>
-            <Form.Group controlId={`formBasicAddedReason ${card.taskId}`}>
-              <Form.Control
-                required={true}
-                type="reason"
-                defaultValue={card.addedReason}
-                onChange={(i) => {
-                  const newState = formState;
-                  newState.addedReason = i.target.value;
-                  setFormState(newState);
-                }}
-              />
-            </Form.Group>
-            <Form.Label>Extention Reason</Form.Label>
-            <Form.Group controlId={`formBasicExtReason ${card.taskId}`}>
-              <Form.Control
-                required={true}
-                type="reason"
-                defaultValue={card.extensionReason}
-                onChange={(i) => {
-                  const newState = formState;
-                  newState.extensionReason = i.target.value;
-                  setFormState(newState);
-                }}
-              />
-            </Form.Group>
+                      setFormState(newState);
+                    }}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col xs={6}>
+                <Form.Label>Extention Reason</Form.Label>
+                <Form.Group controlId={`formBasicExtReason ${card.taskId}`}>
+                  <Form.Control
+                    required={true}
+                    type="reason"
+                    defaultValue={card.extensionReason}
+                    onChange={(i) => {
+                      const newState = formState;
+                      newState.extensionReason = i.target.value;
+                      setFormState(newState);
+                    }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={6}>
+                <Form.Label>Task Added Points</Form.Label>
+                <Form.Group controlId={`formBasicAddedePoints ${card.taskId}`}>
+                  <Form.Control
+                    type="number"
+                    name="Added Task Points"
+                    defaultValue={card.addedPoints}
+                    onChange={(i) => {
+                      const newState = formState;
+
+                      newState.addedPoints = Number(i.target.value);
+
+                      setFormState(newState);
+                    }}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
             <Button variant="primary" type="submit">
               Submit
             </Button>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { SyntheticEvent } from "react";
 import {
   Modal,
   Form,
@@ -15,6 +15,7 @@ import apiClient from "../API/client/";
 import { LoginObject, UserDto } from "../API/client/client";
 import { useToasts } from "react-toast-notifications";
 import GlobalContainer from "../API/GlobalState";
+import { AnyCnameRecord } from "node:dns";
 
 interface iLoginDetails {
   email?: string;
@@ -70,6 +71,23 @@ export const AccountModal = (props: IHandlerProps) => {
       </Toast.Body>
     </Toast>
   );
+
+  const login = async () => {
+    //check password and email are correct to login if they are successfully login
+    const postObj = new LoginObject();
+    postObj.email = loginDetails?.email;
+    postObj.password = loginDetails?.password;
+    const result = await apiClient.checkLogin(postObj);
+    result && successfulLogin(result);
+    if (!result) {
+      props.setAccountModalVisible(false);
+      addToast(errorToast, {
+        appearance: "error",
+        autoDismiss: true,
+      });
+    }
+  };
+
   return (
     <div>
       <Modal show={props.accountModalVisible}>
@@ -106,26 +124,19 @@ export const AccountModal = (props: IHandlerProps) => {
                         password: i.target.value,
                       });
                     }}
+                    onKeyPress={(e: any) => {
+                      if (e.charCode === 13) {
+                        login();
+                      }
+                    }}
                   />
                 </Form.Group>
               </Form>
               <Button
                 variant="primary"
                 type="submit"
-                onClick={async (e) => {
-                  //check password and email are correct to login if they are successfully login
-                  const postObj = new LoginObject();
-                  postObj.email = loginDetails?.email;
-                  postObj.password = loginDetails?.password;
-                  const result = await apiClient.checkLogin(postObj);
-                  result && successfulLogin(result);
-                  if (!result) {
-                    props.setAccountModalVisible(false);
-                    addToast(errorToast, {
-                      appearance: "error",
-                      autoDismiss: true,
-                    });
-                  }
+                onClick={() => {
+                  login();
                 }}
               >
                 Login

@@ -33,7 +33,20 @@ const AddProjectModal = (props: IHandlerProps) => {
 
   return (
     <>
-      <Modal autoFocus={false} show={projectModalVisible}>
+      <Modal
+        autoFocus={false}
+        show={projectModalVisible}
+        onShow={() => {
+          console.log("load");
+          setFormState((prev) => {
+            const newState = prev;
+            newState.projectStartTime = project.projectStartTime;
+            newState.projectArchived = "false";
+            newState.projectComplete = "false";
+            return newState;
+          });
+        }}
+      >
         <Modal.Header>
           <Modal.Title>Add Project</Modal.Title>
         </Modal.Header>

@@ -14,6 +14,10 @@ export default function WeekPage() {
     setState({ tasks: tasksearch });
     // console.log(tasksearch);
   };
+  const getDbBoards = async (userId: number) => {
+    const boards = await apiClient.getUserProjects(userId);
+    // setState({ ...state, boards: boards });
+  };
 
   return (
     <Container fluid={true}>

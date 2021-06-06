@@ -43,6 +43,10 @@ export interface IClient {
     /**
      * @return Success
      */
+    getUsers(): Promise<UserDto[]>;
+    /**
+     * @return Success
+     */
     getAdminProjects(): Promise<ProjectDto[]>;
     /**
      * @param body (optional) 
@@ -477,6 +481,54 @@ export class Client implements IClient {
             });
         }
         return Promise.resolve<ProjectDto[]>(<any>null);
+    }
+
+    /**
+     * @return Success
+     */
+    getUsers(): Promise<UserDto[]> {
+        let url_ = this.baseUrl + "/Project/GetUsers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ = <RequestInit>{
+            method: "POST",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetUsers(_response);
+        });
+    }
+
+    protected processGetUsers(response: Response): Promise<UserDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(UserDto.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UserDto[]>(<any>null);
     }
 
     /**
@@ -1286,7 +1338,7 @@ export class Client implements IClient {
      * @return Success
      */
     getBoards(body: string | undefined): Promise<ProjectDto[]> {
-        let url_ = this.baseUrl + "/TrelloControllerrr/GetBoards";
+        let url_ = this.baseUrl + "/Trello/GetBoards";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -1339,7 +1391,7 @@ export class Client implements IClient {
      * @return Success
      */
     getBoardById(body: GetBoardByIdRequest | undefined): Promise<ProjectDto> {
-        let url_ = this.baseUrl + "/TrelloControllerrr/GetBoardById";
+        let url_ = this.baseUrl + "/Trello/GetBoardById";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -1388,7 +1440,7 @@ export class Client implements IClient {
      * @return Success
      */
     moveCard(body: MoveCardRequest | undefined): Promise<ProjectDto> {
-        let url_ = this.baseUrl + "/TrelloControllerrr/MoveCard";
+        let url_ = this.baseUrl + "/Trello/MoveCard";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -1437,7 +1489,7 @@ export class Client implements IClient {
      * @return Success
      */
     deleteCard(body: DeleteCardRequest | undefined): Promise<DeleteCardRequest> {
-        let url_ = this.baseUrl + "/TrelloControllerrr/DeleteCard";
+        let url_ = this.baseUrl + "/Trello/DeleteCard";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -1486,7 +1538,7 @@ export class Client implements IClient {
      * @return Success
      */
     addCard(body: AddCardRequest | undefined): Promise<AddCardRequest> {
-        let url_ = this.baseUrl + "/TrelloControllerrr/AddCard";
+        let url_ = this.baseUrl + "/Trello/AddCard";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -1719,6 +1771,7 @@ export interface IAddCardRequest {
 
 export class ColumnDto implements IColumnDto {
     columnId?: number;
+    projectId?: number;
     trelloColumnId!: string;
     columnName?: string | undefined;
     pointsTotal?: number;
@@ -1737,6 +1790,7 @@ export class ColumnDto implements IColumnDto {
     init(_data?: any) {
         if (_data) {
             this.columnId = _data["columnId"];
+            this.projectId = _data["projectId"];
             this.trelloColumnId = _data["trelloColumnId"];
             this.columnName = _data["columnName"];
             this.pointsTotal = _data["pointsTotal"];
@@ -1759,6 +1813,7 @@ export class ColumnDto implements IColumnDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["columnId"] = this.columnId;
+        data["projectId"] = this.projectId;
         data["trelloColumnId"] = this.trelloColumnId;
         data["columnName"] = this.columnName;
         data["pointsTotal"] = this.pointsTotal;
@@ -1774,6 +1829,7 @@ export class ColumnDto implements IColumnDto {
 
 export interface IColumnDto {
     columnId?: number;
+    projectId?: number;
     trelloColumnId: string;
     columnName?: string | undefined;
     pointsTotal?: number;
@@ -3720,6 +3776,8 @@ export class UserViewDto implements IUserViewDto {
     password?: string | undefined;
     accessToken?: string | undefined;
     archived?: string | undefined;
+    points?: number;
+    addedPoints?: number;
     linkUserTaskId?: number;
 
     constructor(data?: IUserViewDto) {
@@ -3740,6 +3798,8 @@ export class UserViewDto implements IUserViewDto {
             this.password = _data["password"];
             this.accessToken = _data["accessToken"];
             this.archived = _data["archived"];
+            this.points = _data["points"];
+            this.addedPoints = _data["addedPoints"];
             this.linkUserTaskId = _data["linkUserTaskId"];
         }
     }
@@ -3760,6 +3820,8 @@ export class UserViewDto implements IUserViewDto {
         data["password"] = this.password;
         data["accessToken"] = this.accessToken;
         data["archived"] = this.archived;
+        data["points"] = this.points;
+        data["addedPoints"] = this.addedPoints;
         data["linkUserTaskId"] = this.linkUserTaskId;
         return data; 
     }
@@ -3773,6 +3835,8 @@ export interface IUserViewDto {
     password?: string | undefined;
     accessToken?: string | undefined;
     archived?: string | undefined;
+    points?: number;
+    addedPoints?: number;
     linkUserTaskId?: number;
 }
 
