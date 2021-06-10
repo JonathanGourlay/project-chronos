@@ -1,4 +1,4 @@
-import React, { CSSProperties, useState } from "react";
+import React, { CSSProperties } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -7,31 +7,44 @@ import {
   DraggableLocation,
   NotDraggingStyle,
   DraggingStyle,
-  DragStart,
 } from "react-beautiful-dnd";
-import { Button, Card, Container, Dropdown, Toast } from "react-bootstrap";
+import {
+  Button,
+  ButtonGroup,
+  Card,
+  Dropdown,
+  OverlayTrigger,
+  Popover,
+  Toast,
+  ToggleButton,
+} from "react-bootstrap";
 // import { State } from "../Scripts/GlobalState";
+
 import AddCardModal from "./AddCardModal";
 import AddColumnModal from "./AddColumnModal";
 import apiClient from "../API/client/";
 import { useToasts } from "react-toast-notifications";
 import {
+  BsPlay,
+  BsStop,
+  BsPersonPlus,
+  BsTrash,
+  BsArrowCounterclockwise,
+  BsFillPauseFill,
+} from "react-icons/bs";
+
+import {
   ColumnDto,
-  ColumnObject,
   ProjectDto,
   TaskDto,
-  MoveCardRequest,
-  GetBoardByIdRequest,
-  DeleteCardRequest,
   CreateTask,
   CreateColumn,
-  UpdateTask,
-  CreateProject,
+  CreateTimeLog,
+  ICreateTimeLog,
 } from "../API/client/client";
 import { useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
-import UpdateCardModal from "./UpdateCardModal";
-import { BsPlay, BsStop } from "react-icons/bs";
+import Timer from "react-compound-timer/build";
 
 export type BoardCard = TaskDto;
 export type Board = ColumnDto[][];
@@ -117,8 +130,11 @@ const getListStyle = (isDraggingOver: boolean): CSSProperties => ({
 });
 
 export interface stateObject {
+  projectModalVisible: boolean;
   cardModalVisible: boolean;
   updateCardModalVisible: boolean;
+  assignModalVisible: boolean;
+  assignProjectModalVisible: boolean;
   columnModalVisible: boolean;
   columnIndex: number;
   cardId: string;
@@ -126,7 +142,12 @@ export interface stateObject {
   card: TaskDto;
   boardState: ColumnDto[][];
   boards: ProjectDto[];
+  projects: ProjectDto[];
   selectedBoard: ProjectDto;
+  counter: number;
+  billable: string;
+  startTime: Date;
+  timerStatus: boolean;
 }
 
 export const KanbanBoard = () => {
@@ -139,6 +160,7 @@ export const KanbanBoard = () => {
   }, []);
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
+  React.useEffect(() => {}, [state?.timerStatus]);
 
   const getDbBoards = async (userId: number) => {
     const boards = await apiClient.getUserProjects(userId);
@@ -292,6 +314,10 @@ export const KanbanBoard = () => {
                   (column) => column.columnId === dInd
                 );
                 // console.log(sourechange, destchange);
+                // if (newState.selectedBoard.columns[sourechange] === undefined) {
+                //   newState.selectedBoard.columns[sourechange].tasks =
+                //     Array<TaskDto>();
+                // }
                 newState.selectedBoard.columns[sourechange].tasks =
                   result[sInd];
                 newState.selectedBoard.columns[destchange].tasks = result[dInd];
@@ -449,6 +475,7 @@ export const KanbanBoard = () => {
                                                 setState({
                                                   cardId:
                                                     card.taskId!.toString(),
+                                                  card: card,
                                                 });
                                               }}
                                               style={{
@@ -461,44 +488,234 @@ export const KanbanBoard = () => {
                                                 border: "none",
                                               }}
                                             >
-                                              <div
+                                              <Card.Header
                                                 style={{
                                                   display: "flex",
                                                   justifyContent:
                                                     "space-between",
                                                 }}
                                               >
-                                                <Button
-                                                  onClick={() => {}}
-                                                  style={{
-                                                    width: 40,
-                                                  }}
-                                                >
-                                                  <BsPlay />
-                                                </Button>
-                                                <Button
-                                                  onClick={() => {}}
-                                                  style={{
-                                                    width: 40,
-                                                  }}
-                                                >
-                                                  <BsStop />
-                                                </Button>
-                                              </div>
-                                              <Card.Title>
-                                                {card.points}
-                                              </Card.Title>
-                                              <Card.Title>
-                                                {card.taskId}
-                                              </Card.Title>
-                                              <Card.Title>
-                                                {card.taskName}
-                                              </Card.Title>
-                                              <Card.Text>
-                                                {card.comments}
-                                              </Card.Text>
+                                                <h4>
+                                                  <Timer
+                                                    initialTime={1}
+                                                    startImmediately={false}
+                                                  >
+                                                    {({
+                                                      start,
+                                                      resume,
+                                                      pause,
+                                                      stop,
+                                                      reset,
+                                                      timerState,
+                                                    }) => (
+                                                      <React.Fragment>
+                                                        <div>
+                                                          <Timer.Days /> :{" "}
+                                                          <Timer.Hours /> :{" "}
+                                                          <Timer.Minutes /> :{" "}
+                                                          <Timer.Seconds />{" "}
+                                                        </div>
+
+                                                        <br />
+                                                        <div>
+                                                          {state.timerStatus ? (
+                                                            <Button
+                                                              onClick={() => {
+                                                                pause();
+                                                                setState({
+                                                                  timerStatus:
+                                                                    false,
+                                                                });
+                                                              }}
+                                                            >
+                                                              <BsFillPauseFill />
+                                                            </Button>
+                                                          ) : (
+                                                            <Button
+                                                              onClick={() => {
+                                                                start();
+                                                                setState({
+                                                                  startTime:
+                                                                    new Date(),
+                                                                  timerStatus:
+                                                                    true,
+                                                                });
+                                                              }}
+                                                              style={{
+                                                                width: 40,
+                                                              }}
+                                                            >
+                                                              <BsPlay />
+                                                            </Button>
+                                                          )}
+
+                                                          <OverlayTrigger
+                                                            trigger="click"
+                                                            placement="right"
+                                                            overlay={
+                                                              <Popover
+                                                                id="popover-basic"
+                                                                style={{
+                                                                  width: 200,
+                                                                  justifySelf:
+                                                                    "space-between",
+                                                                }}
+                                                              >
+                                                                <Popover.Title as="h3">
+                                                                  Billable
+                                                                  Hours?
+                                                                </Popover.Title>
+                                                                <Popover.Content
+                                                                  style={{
+                                                                    textAlign:
+                                                                      "center",
+                                                                  }}
+                                                                >
+                                                                  <div>
+                                                                    <ButtonGroup
+                                                                      toggle
+                                                                    >
+                                                                      <ToggleButton
+                                                                        key={
+                                                                          "true"
+                                                                        }
+                                                                        type="radio"
+                                                                        variant="success"
+                                                                        name="radio"
+                                                                        value={
+                                                                          "true"
+                                                                        }
+                                                                        checked={
+                                                                          state.billable ===
+                                                                          "true"
+                                                                        }
+                                                                        onChange={() => {
+                                                                          setState(
+                                                                            {
+                                                                              billable:
+                                                                                "true",
+                                                                            }
+                                                                          );
+                                                                        }}
+                                                                      >
+                                                                        True
+                                                                      </ToggleButton>
+                                                                      <ToggleButton
+                                                                        key={
+                                                                          "false"
+                                                                        }
+                                                                        type="radio"
+                                                                        variant="danger"
+                                                                        name="radio"
+                                                                        value={
+                                                                          "false"
+                                                                        }
+                                                                        checked={
+                                                                          state.billable ===
+                                                                          "false"
+                                                                        }
+                                                                        onChange={() => {
+                                                                          setState(
+                                                                            {
+                                                                              billable:
+                                                                                "false",
+                                                                            }
+                                                                          );
+                                                                        }}
+                                                                      >
+                                                                        False
+                                                                      </ToggleButton>
+                                                                    </ButtonGroup>
+                                                                  </div>
+                                                                  <div>
+                                                                    <Button
+                                                                      style={{
+                                                                        marginTop: 10,
+                                                                      }}
+                                                                      onClick={async () => {
+                                                                        stop();
+                                                                        // Create Timelog Modal
+
+                                                                        let newTimeLog: ICreateTimeLog =
+                                                                          {
+                                                                            billable:
+                                                                              state.billable,
+                                                                            startTime:
+                                                                              state.startTime,
+                                                                            endTime:
+                                                                              new Date(),
+                                                                            userId:
+                                                                              activeUser?.userId,
+                                                                            taskId:
+                                                                              card.taskId,
+                                                                            archived:
+                                                                              "false",
+                                                                          };
+
+                                                                        console.log(
+                                                                          newTimeLog
+                                                                        );
+                                                                        await apiClient
+                                                                          .createTimeLog(
+                                                                            new CreateTimeLog(
+                                                                              newTimeLog
+                                                                            )
+                                                                          )
+                                                                          .then(
+                                                                            () =>
+                                                                              reset()
+                                                                          );
+                                                                      }}
+                                                                    >
+                                                                      Submit
+                                                                    </Button>
+                                                                  </div>
+                                                                </Popover.Content>
+                                                              </Popover>
+                                                            }
+                                                          >
+                                                            <Button
+                                                              onClick={async () => {}}
+                                                            >
+                                                              <BsStop />
+                                                            </Button>
+                                                          </OverlayTrigger>
+                                                          <Button
+                                                            onClick={reset}
+                                                          >
+                                                            <BsArrowCounterclockwise />
+                                                          </Button>
+                                                        </div>
+                                                      </React.Fragment>
+                                                    )}
+                                                  </Timer>
+                                                </h4>
+                                              </Card.Header>
 
                                               <Card.Body className="text-center p-0">
+                                                <Card.Title>
+                                                  {state.counter}
+                                                </Card.Title>
+                                                <Card.Title>
+                                                  {card.points}
+                                                </Card.Title>
+                                                <Card.Title>
+                                                  {card.taskId}
+                                                </Card.Title>
+                                                <Card.Title>
+                                                  {card.taskName}
+                                                </Card.Title>
+                                                <Card.Text>
+                                                  {card.comments}
+                                                </Card.Text>
+                                              </Card.Body>
+                                              <Card.Footer
+                                                style={{
+                                                  display: "flex",
+                                                  justifyContent:
+                                                    "space-between",
+                                                }}
+                                              >
                                                 <Button
                                                   type="button"
                                                   variant="danger"
@@ -522,9 +739,25 @@ export const KanbanBoard = () => {
                                                     });
                                                   }}
                                                 >
-                                                  delete
+                                                  <BsTrash />
                                                 </Button>
-                                              </Card.Body>
+                                                <Button
+                                                  type="button"
+                                                  variant="success"
+                                                  className="btn-sm w-50"
+                                                  style={{
+                                                    width: 40,
+                                                  }}
+                                                  onClick={() => {
+                                                    setState({
+                                                      assignModalVisible: true,
+                                                      card: card,
+                                                    });
+                                                  }}
+                                                >
+                                                  <BsPersonPlus />
+                                                </Button>
+                                              </Card.Footer>
                                             </Card>
                                           </div>
                                         );

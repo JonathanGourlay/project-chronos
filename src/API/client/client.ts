@@ -2700,6 +2700,7 @@ export class ProjectDto implements IProjectDto {
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
+    pointsAchived?: number;
     projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
@@ -2725,6 +2726,7 @@ export class ProjectDto implements IProjectDto {
             this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
             this.pointsTotal = _data["pointsTotal"];
             this.addedPoints = _data["addedPoints"];
+            this.pointsAchived = _data["pointsAchived"];
             this.projectComplete = _data["projectComplete"];
             this.projectArchived = _data["projectArchived"];
             this.timeIncrement = _data["timeIncrement"];
@@ -2758,6 +2760,7 @@ export class ProjectDto implements IProjectDto {
         data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
         data["pointsTotal"] = this.pointsTotal;
         data["addedPoints"] = this.addedPoints;
+        data["pointsAchived"] = this.pointsAchived;
         data["projectComplete"] = this.projectComplete;
         data["projectArchived"] = this.projectArchived;
         data["timeIncrement"] = this.timeIncrement;
@@ -2784,6 +2787,7 @@ export interface IProjectDto {
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
+    pointsAchived?: number;
     projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
@@ -2895,6 +2899,7 @@ export class ProjectViewDto implements IProjectViewDto {
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
+    pointsAchived?: number;
     projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
@@ -2917,6 +2922,7 @@ export class ProjectViewDto implements IProjectViewDto {
             this.expectedEndTime = _data["expectedEndTime"] ? new Date(_data["expectedEndTime"].toString()) : <any>undefined;
             this.pointsTotal = _data["pointsTotal"];
             this.addedPoints = _data["addedPoints"];
+            this.pointsAchived = _data["pointsAchived"];
             this.projectComplete = _data["projectComplete"];
             this.projectArchived = _data["projectArchived"];
             this.timeIncrement = _data["timeIncrement"];
@@ -2939,6 +2945,7 @@ export class ProjectViewDto implements IProjectViewDto {
         data["expectedEndTime"] = this.expectedEndTime ? this.expectedEndTime.toISOString() : <any>undefined;
         data["pointsTotal"] = this.pointsTotal;
         data["addedPoints"] = this.addedPoints;
+        data["pointsAchived"] = this.pointsAchived;
         data["projectComplete"] = this.projectComplete;
         data["projectArchived"] = this.projectArchived;
         data["timeIncrement"] = this.timeIncrement;
@@ -2954,6 +2961,7 @@ export interface IProjectViewDto {
     expectedEndTime?: Date;
     pointsTotal?: number;
     addedPoints?: number;
+    pointsAchived?: number;
     projectComplete?: string | undefined;
     projectArchived?: string | undefined;
     timeIncrement?: number;
