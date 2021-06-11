@@ -223,6 +223,10 @@ export const KanbanBoardAdmin = () => {
       await apiClient.deleteCard(deleteRequest);
     }
   };
+  const moveTask = async (columnId: number, taskId: number) => {
+    await apiClient.moveTask(columnId, taskId);
+  };
+
   const addItemToColumn = async (index: number, form: TaskDto) => {
     setState((prev) => {
       const newState = prev;
@@ -336,13 +340,47 @@ export const KanbanBoardAdmin = () => {
           );
           if (t !== undefined) {
             console.log("t", t);
-            const res = await addItemToColumn(destColumnIndex, t);
+            // const res = await addItemToColumn(destColumnIndex, t);
+            if (destColumn.columnId && t.taskId)
+              moveTask(destColumn.columnId, t.taskId);
             setState((prev) => {
               const newState = prev;
-              if (newState.selectedBoard?.columns) {
-                newState.selectedBoard.columns[sourceColumnIndex].tasks?.filter(
-                  (task) => task.taskId === Number(state.cardId)
+              if (
+                newState.selectedBoard?.columns &&
+                newState.selectedBoard.columns[sourceColumnIndex].tasks
+              ) {
+                newState.selectedBoard.columns[sourceColumnIndex].tasks!.map(
+                  (task, index) => {
+                    if (
+                      t.taskId === task.taskId &&
+                      newState.selectedBoard.columns &&
+                      newState.selectedBoard.columns[sourceColumnIndex].tasks
+                    ) {
+                      newState.selectedBoard.columns[
+                        sourceColumnIndex
+                      ].tasks!.splice(index, 1);
+                      if (
+                        newState.selectedBoard.columns[destColumnIndex]
+                          .tasks === undefined
+                      ) {
+                        newState.selectedBoard.columns[destColumnIndex].tasks =
+                          Array<TaskDto>();
+                      }
+                      newState.selectedBoard.columns[
+                        destColumnIndex
+                      ].tasks?.push(t);
+                    }
+                  }
                 );
+                // console.log(index);
+                // if (index) {
+                //   newState.selectedBoard.columns[
+                //     sourceColumnIndex
+                //   ].tasks?.splice(index, 1);
+                //   console.log(
+                //     newState.selectedBoard.columns[sourceColumnIndex].tasks
+                //   );
+                // }
               }
               return newState;
             });
@@ -371,8 +409,17 @@ export const KanbanBoardAdmin = () => {
                   (column) => column.columnId === dInd
                 );
                 // console.log(sourechange, destchange);
+
+                if (newState.selectedBoard.columns[sourechange] === undefined) {
+                  newState.selectedBoard.columns[sourechange].tasks =
+                    Array<TaskDto>();
+                }
                 newState.selectedBoard.columns[sourechange].tasks =
                   result[sInd];
+                if (newState.selectedBoard.columns[destchange] === undefined) {
+                  newState.selectedBoard.columns[destchange].tasks =
+                    Array<TaskDto>();
+                }
                 newState.selectedBoard.columns[destchange].tasks = result[dInd];
               }
               return newState;
@@ -403,14 +450,6 @@ export const KanbanBoardAdmin = () => {
           }
         };
         var destId = state.selectedBoard.columns[dInd]?.trelloColumnId;
-        console.log("hit");
-        console.log(
-          activeUser?.accessToken,
-          state.selectedBoard.columns[sInd],
-          state.selectedBoard.columns[sInd].tasks,
-          destId,
-          state.cardId
-        );
         if (
           activeUser?.accessToken &&
           state.selectedBoard.columns[sInd] &&

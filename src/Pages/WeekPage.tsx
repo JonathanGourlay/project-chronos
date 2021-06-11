@@ -4,20 +4,37 @@ import { Droppable, Draggable } from "react-beautiful-dnd";
 import { Button, Card, Row, Container, Col } from "react-bootstrap";
 import apiClient from "../API/client/";
 import { TaskObject } from "../API/client/client";
+import dayjs from "dayjs";
+import * as isBetween from "dayjs/plugin/isBetween";
+
+import GlobalContainer from "../API/GlobalState";
 
 export default function WeekPage() {
   const dow = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  var days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
   const tasks: TaskObject[] = [];
   const [state, setState] = React.useState({ tasks: tasks });
+  const { activeUser, setActiveUser } = GlobalContainer.useContainer();
   const getTasks = async () => {
-    const tasksearch = await apiClient.getUserTasks(1);
-    setState({ tasks: tasksearch });
+    if (activeUser?.userId) {
+      const tasksearch = await apiClient.getUserTasks(activeUser?.userId);
+      console.log(tasksearch);
+      setState({ tasks: tasksearch });
+    }
+
     // console.log(tasksearch);
   };
-  const getDbBoards = async (userId: number) => {
-    const boards = await apiClient.getUserProjects(userId);
-    // setState({ ...state, boards: boards });
-  };
+  React.useEffect(() => {
+    getTasks();
+  }, []);
 
   return (
     <Container fluid={true}>
@@ -38,16 +55,35 @@ export default function WeekPage() {
                   <div>
                     {state.tasks.length !== 0 ? (
                       state.tasks.map((task) => {
-                        return (
-                          <div>
-                            <Card.Text>{task.taskName}</Card.Text>
-                            <Card.Text>{task.comments}</Card.Text>
-
-                            {task.timelogs?.map((timelog) => {
-                              return <Card.Text>{timelog.startTime}</Card.Text>;
-                            })}
-                          </div>
-                        );
+                        if (
+                          task.endTime &&
+                          task.endTime > new Date() &&
+                          task.endTime <
+                            new Date(
+                              new Date().setDate(new Date().getDate() + 7)
+                            ) &&
+                          days[
+                            task.endTime!.getDay() != 6 ||
+                            task.endTime!.getDay() != 0
+                              ? task.endTime!.getDay()
+                              : 1
+                          ] === day
+                        ) {
+                          return (
+                            <div>
+                              <Card>
+                                <Card.Text>{task.taskName}</Card.Text>
+                                <Card.Text>{task.comments}</Card.Text>
+                                <Card.Text>{task.endTime!.getDay()}</Card.Text>
+                              </Card>
+                              {task.timelogs?.map((timelog) => {
+                                return (
+                                  <Card.Text>{timelog.startTime}</Card.Text>
+                                );
+                              })}
+                            </div>
+                          );
+                        }
                       })
                     ) : (
                       <Card.Title>NO-DATA</Card.Title>

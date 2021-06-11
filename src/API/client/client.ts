@@ -117,6 +117,12 @@ export interface IClient {
      */
     setColumnTask(columnId: number | undefined, taskId: number | undefined): Promise<number>;
     /**
+     * @param columnId (optional) 
+     * @param taskId (optional) 
+     * @return Success
+     */
+    moveTask(columnId: number | undefined, taskId: number | undefined): Promise<number>;
+    /**
      * @param body (optional) 
      * @return Success
      */
@@ -1211,6 +1217,60 @@ export class Client implements IClient {
     }
 
     protected processSetColumnTask(response: Response): Promise<number> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = resultData200 !== undefined ? resultData200 : <any>null;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<number>(<any>null);
+    }
+
+    /**
+     * @param columnId (optional) 
+     * @param taskId (optional) 
+     * @return Success
+     */
+    moveTask(columnId: number | undefined, taskId: number | undefined): Promise<number> {
+        let url_ = this.baseUrl + "/Project/MoveTask?";
+        if (columnId === null)
+            throw new Error("The parameter 'columnId' cannot be null.");
+        else if (columnId !== undefined)
+            url_ += "columnId=" + encodeURIComponent("" + columnId) + "&";
+        if (taskId === null)
+            throw new Error("The parameter 'taskId' cannot be null.");
+        else if (taskId !== undefined)
+            url_ += "taskId=" + encodeURIComponent("" + taskId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ = <RequestInit>{
+            method: "POST",
+            headers: {
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMoveTask(_response);
+        });
+    }
+
+    protected processMoveTask(response: Response): Promise<number> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 500) {

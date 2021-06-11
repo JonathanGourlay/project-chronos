@@ -107,7 +107,9 @@ function move(
     return;
   }
 }
-
+const moveTask = async (columnId: number, taskId: number) => {
+  await apiClient.moveTask(columnId, taskId);
+};
 const getItemStyle = (
   isDragging: boolean,
   draggableStyle: DraggingStyle | NotDraggingStyle | undefined
@@ -266,7 +268,6 @@ export const KanbanBoard = () => {
         (column) => column.columnId === sInd
       );
       if (sInd !== dInd) {
-        console.log(destColumnIndex);
         if (
           activeUser?.accessToken &&
           state.cardId &&
@@ -277,14 +278,39 @@ export const KanbanBoard = () => {
           const t = sourceColumn!.tasks!.find(
             (task) => task.taskId === Number(state.cardId)
           );
+
           if (t !== undefined) {
-            console.log("t", t);
-            const res = await addItemToColumn(destColumnIndex, t);
+            // const res = await addItemToColumn(destColumnIndex, t);
+            if (destColumn.columnId && t.taskId)
+              moveTask(destColumn.columnId, t.taskId);
             setState((prev) => {
               const newState = prev;
-              if (newState.selectedBoard?.columns) {
-                newState.selectedBoard.columns[sourceColumnIndex].tasks?.filter(
-                  (task) => task.taskId === Number(state.cardId)
+              if (
+                newState.selectedBoard?.columns &&
+                newState.selectedBoard.columns[sourceColumnIndex].tasks
+              ) {
+                newState.selectedBoard.columns[sourceColumnIndex].tasks!.map(
+                  (task, index) => {
+                    if (
+                      t.taskId === task.taskId &&
+                      newState.selectedBoard.columns &&
+                      newState.selectedBoard.columns[sourceColumnIndex].tasks
+                    ) {
+                      newState.selectedBoard.columns[
+                        sourceColumnIndex
+                      ].tasks!.splice(index, 1);
+                      if (
+                        newState.selectedBoard.columns[destColumnIndex]
+                          .tasks === undefined
+                      ) {
+                        newState.selectedBoard.columns[destColumnIndex].tasks =
+                          Array<TaskDto>();
+                      }
+                      newState.selectedBoard.columns[
+                        destColumnIndex
+                      ].tasks?.push(t);
+                    }
+                  }
                 );
               }
               return newState;
@@ -313,11 +339,11 @@ export const KanbanBoard = () => {
                 const destchange = newState.selectedBoard.columns.findIndex(
                   (column) => column.columnId === dInd
                 );
-                // console.log(sourechange, destchange);
-                // if (newState.selectedBoard.columns[sourechange] === undefined) {
-                //   newState.selectedBoard.columns[sourechange].tasks =
-                //     Array<TaskDto>();
-                // }
+
+                if (newState.selectedBoard.columns[sourechange] === undefined) {
+                  newState.selectedBoard.columns[sourechange].tasks =
+                    Array<TaskDto>();
+                }
                 newState.selectedBoard.columns[sourechange].tasks =
                   result[sInd];
                 newState.selectedBoard.columns[destchange].tasks = result[dInd];
@@ -370,7 +396,7 @@ export const KanbanBoard = () => {
           Get Boards
         </Button>
       )}
-      <Button
+      {/* <Button
         type="button"
         variant="info"
         className="m-1"
@@ -382,7 +408,7 @@ export const KanbanBoard = () => {
         }}
       >
         Add new group
-      </Button>
+      </Button> */}
       <AddColumnModal
         setState={setState}
         columnModalVisible={state.columnModalVisible}
@@ -396,7 +422,6 @@ export const KanbanBoard = () => {
             {state.selectedBoard !== undefined &&
             state.selectedBoard.columns !== undefined
               ? state.selectedBoard.columns.map((column, index) => {
-                  // console.log(column);
                   // Constant to create card's Id in format of (ColumnId - CardId)
                   // Function for adding an item to a column
                   return (
@@ -709,55 +734,6 @@ export const KanbanBoard = () => {
                                                   {card.comments}
                                                 </Card.Text>
                                               </Card.Body>
-                                              <Card.Footer
-                                                style={{
-                                                  display: "flex",
-                                                  justifyContent:
-                                                    "space-between",
-                                                }}
-                                              >
-                                                <Button
-                                                  type="button"
-                                                  variant="danger"
-                                                  className="btn-sm w-50"
-                                                  onClick={() => {
-                                                    setState((prev) => {
-                                                      const newState = prev;
-                                                      if (
-                                                        newState.selectedBoard &&
-                                                        newState.selectedBoard
-                                                          .columns
-                                                      ) {
-                                                        newState.selectedBoard.columns[
-                                                          index
-                                                        ].tasks?.splice(
-                                                          cardIndex,
-                                                          1
-                                                        );
-                                                      }
-                                                      return newState;
-                                                    });
-                                                  }}
-                                                >
-                                                  <BsTrash />
-                                                </Button>
-                                                <Button
-                                                  type="button"
-                                                  variant="success"
-                                                  className="btn-sm w-50"
-                                                  style={{
-                                                    width: 40,
-                                                  }}
-                                                  onClick={() => {
-                                                    setState({
-                                                      assignModalVisible: true,
-                                                      card: card,
-                                                    });
-                                                  }}
-                                                >
-                                                  <BsPersonPlus />
-                                                </Button>
-                                              </Card.Footer>
                                             </Card>
                                           </div>
                                         );

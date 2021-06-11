@@ -3,6 +3,7 @@ import { Button, Container, Navbar } from "react-bootstrap";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import { UserDto } from "../API/client/client";
 import GlobalContainer from "../API/GlobalState";
+import DashboardPage from "../Pages/DashboardPage";
 import ProjectsPage from "../Pages/ProjectsPage";
 import WeekPage from "../Pages/WeekPage";
 import { AccountModal } from "./AccountModal";
@@ -27,9 +28,7 @@ const Navigation = () => {
               <Link to="/week" style={{ marginLeft: 20, marginRight: 20 }}>
                 Week View
               </Link>
-              <Link to="/day" style={{ marginLeft: 20, marginRight: 20 }}>
-                Day View
-              </Link>
+
               <Button
                 variant="success"
                 onClick={() => {
@@ -56,7 +55,9 @@ const Navigation = () => {
               <Route path="/projects">
                 <ProjectsPage />
               </Route>
-              <Route path="/dashboard">dashboard</Route>
+              <Route path="/dashboard">
+                <DashboardPage />
+              </Route>
               <Route path="/week">
                 <WeekPage />
               </Route>
