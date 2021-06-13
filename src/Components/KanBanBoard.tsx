@@ -31,6 +31,7 @@ import {
   BsTrash,
   BsArrowCounterclockwise,
   BsFillPauseFill,
+  BsCheckBox,
 } from "react-icons/bs";
 
 import {
@@ -41,6 +42,7 @@ import {
   CreateColumn,
   CreateTimeLog,
   ICreateTimeLog,
+  UpdateTask,
 } from "../API/client/client";
 import { useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
@@ -159,6 +161,9 @@ export const KanbanBoard = () => {
 
   React.useEffect(() => {
     setState({ columnIndex: 0, boardState: [] });
+    if (activeUser?.userId) {
+      getDbBoards(activeUser?.userId);
+    }
   }, []);
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
@@ -169,19 +174,6 @@ export const KanbanBoard = () => {
     setState({ ...state, boards: boards });
   };
   const addItemToColumn = async (index: number, form: TaskDto) => {
-    setState((prev) => {
-      const newState = prev;
-      if (newState.selectedBoard.columns) {
-        newState.selectedBoard.columns[index].tasks === undefined
-          ? (newState.selectedBoard.columns[index].tasks = new Array<TaskDto>(
-              new TaskDto(form)
-            ))
-          : newState.selectedBoard.columns[index].tasks!.push(
-              new TaskDto(form)
-            );
-      }
-      return newState;
-    });
     if (state.selectedBoard.columns) {
       const request = new CreateTask();
       request.columnId = state.selectedBoard.columns[index].columnId;
@@ -198,6 +190,19 @@ export const KanbanBoard = () => {
       request.taskDeleted = "false";
       request.taskDone = "false";
       const addTask = await apiClient.createTask(request);
+      setState((prev) => {
+        const newState = prev;
+        if (newState.selectedBoard.columns) {
+          newState.selectedBoard.columns[index].tasks === undefined
+            ? (newState.selectedBoard.columns[index].tasks = new Array<TaskDto>(
+                new TaskDto(form)
+              ))
+            : newState.selectedBoard.columns[index].tasks!.push(
+                new TaskDto(form)
+              );
+        }
+        return newState;
+      });
       addToast(
         <Toast>
           <Toast.Body>Saved!</Toast.Body>
@@ -359,7 +364,7 @@ export const KanbanBoard = () => {
   return (
     <div>
       {state.boards ? (
-        <Dropdown>
+        <Dropdown style={{ padding: 10 }}>
           <Dropdown.Toggle variant="success" id="dropdown-basic">
             {state.selectedBoard
               ? state.selectedBoard.projectName
@@ -382,33 +387,9 @@ export const KanbanBoard = () => {
           </Dropdown.Menu>
         </Dropdown>
       ) : (
-        <Button
-          type="button"
-          variant="info"
-          className="m-1"
-          onClick={() => {
-            //NOTE - change this to the logged in users key
-            activeUser && activeUser !== undefined
-              ? getDbBoards(activeUser.userId)
-              : console.log("missed");
-          }}
-        >
-          Get Boards
-        </Button>
+        <></>
       )}
-      {/* <Button
-        type="button"
-        variant="info"
-        className="m-1"
-        onClick={() => {
-          setState({
-            columnModalVisible: true,
-            columnIndex: state.boardState.length,
-          });
-        }}
-      >
-        Add new group
-      </Button> */}
+
       <AddColumnModal
         setState={setState}
         columnModalVisible={state.columnModalVisible}
@@ -432,7 +413,20 @@ export const KanbanBoard = () => {
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
-                          style={getListStyle(snapshot.isDraggingOver)}
+                          style={
+                            (getListStyle(snapshot.isDraggingOver),
+                            {
+                              backgroundColor: "#4c555d",
+                              borderRadius: 6,
+                              color: "white",
+                              margin: 10,
+                              justifyContent: "space-around",
+                              width:
+                                window.innerWidth /
+                                state.selectedBoard.columns!.length,
+                              textAlign: "center",
+                            })
+                          }
                           {...provided.droppableProps}
                         >
                           {state.columnIndex === index && (
@@ -457,7 +451,6 @@ export const KanbanBoard = () => {
                           )}
 
                           <>
-                            <h1>{column.columnId}</h1>
                             <h1>{column.columnName}</h1>
                             <Button
                               type="button"
@@ -471,7 +464,7 @@ export const KanbanBoard = () => {
                                 });
                               }}
                             >
-                              add card
+                              Add Card
                             </Button>
                             {column.tasks
                               ? column.tasks!.map((card, cardIndex) => {
@@ -511,9 +504,13 @@ export const KanbanBoard = () => {
                                                     ? itemStyles.background
                                                     : "red",
                                                 border: "none",
+                                                color: "black",
                                               }}
                                             >
                                               <Card.Header
+                                                hidden={
+                                                  card.taskDone === "true"
+                                                }
                                                 style={{
                                                   display: "flex",
                                                   justifyContent:
@@ -545,6 +542,10 @@ export const KanbanBoard = () => {
                                                         <div>
                                                           {state.timerStatus ? (
                                                             <Button
+                                                              hidden={
+                                                                card.taskDone ===
+                                                                "true"
+                                                              }
                                                               onClick={() => {
                                                                 pause();
                                                                 setState({
@@ -557,6 +558,10 @@ export const KanbanBoard = () => {
                                                             </Button>
                                                           ) : (
                                                             <Button
+                                                              hidden={
+                                                                card.taskDone ===
+                                                                "true"
+                                                              }
                                                               onClick={() => {
                                                                 start();
                                                                 setState({
@@ -654,6 +659,10 @@ export const KanbanBoard = () => {
                                                                   </div>
                                                                   <div>
                                                                     <Button
+                                                                      hidden={
+                                                                        card.taskDone ===
+                                                                        "true"
+                                                                      }
                                                                       style={{
                                                                         marginTop: 10,
                                                                       }}
@@ -701,11 +710,19 @@ export const KanbanBoard = () => {
                                                           >
                                                             <Button
                                                               onClick={async () => {}}
+                                                              hidden={
+                                                                card.taskDone ===
+                                                                "true"
+                                                              }
                                                             >
                                                               <BsStop />
                                                             </Button>
                                                           </OverlayTrigger>
                                                           <Button
+                                                            hidden={
+                                                              card.taskDone ===
+                                                              "true"
+                                                            }
                                                             onClick={reset}
                                                           >
                                                             <BsArrowCounterclockwise />
@@ -718,6 +735,30 @@ export const KanbanBoard = () => {
                                               </Card.Header>
 
                                               <Card.Body className="text-center p-0">
+                                                <Button
+                                                  hidden={
+                                                    card.taskDone === "true"
+                                                  }
+                                                  onClick={() => {
+                                                    card.taskDone = "true";
+                                                    const request =
+                                                      new UpdateTask(card);
+                                                    request.taskDone = "true";
+                                                    request.pointsTotal =
+                                                      card.points;
+                                                    request.addedPoints =
+                                                      card.addedPoints;
+                                                    apiClient.updateTask(
+                                                      request
+                                                    );
+                                                    setState({
+                                                      columnIndex: index,
+                                                    });
+                                                  }}
+                                                  variant="success"
+                                                >
+                                                  <BsCheckBox />
+                                                </Button>
                                                 <Card.Title>
                                                   {state.counter}
                                                 </Card.Title>

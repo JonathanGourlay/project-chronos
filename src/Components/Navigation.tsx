@@ -12,21 +12,36 @@ const Navigation = () => {
   const [accountModalVisible, setAccountModalVisible] = React.useState(false);
   const { activeUser, setActiveUser } = GlobalContainer.useContainer();
   return (
-    <div>
+    <div
+      style={{
+        backgroundColor: "#343a40f0",
+        flex: 1,
+        height: window.outerHeight * 5,
+      }}
+    >
       <Router>
-        <Navbar bg="dark" variant="dark">
-          <Navbar.Brand>Project Chronos</Navbar.Brand>
+        <Navbar
+          bg="dark"
+          variant="dark"
+          style={{ textAlign: "right", justifyContent: "space-between" }}
+        >
+          <Navbar.Brand>
+            <h3>Project Chronos</h3>
+          </Navbar.Brand>
           {/* <ProjectsPage /> */}
           {activeUser ? (
             <>
               <Link to="/projects" style={{ marginLeft: 20, marginRight: 20 }}>
-                Projects
+                <h5>Projects</h5>
               </Link>
-              <Link to="/dashboard" style={{ marginLeft: 20, marginRight: 20 }}>
-                Dashboard
+              <Link
+                to="/projectInformation"
+                style={{ marginLeft: 20, marginRight: 20 }}
+              >
+                <h5>Project Information</h5>
               </Link>
               <Link to="/week" style={{ marginLeft: 20, marginRight: 20 }}>
-                Week View
+                <h5> Week View</h5>
               </Link>
 
               <Button
@@ -55,7 +70,7 @@ const Navigation = () => {
               <Route path="/projects">
                 <ProjectsPage />
               </Route>
-              <Route path="/dashboard">
+              <Route path="/projectInformation">
                 <DashboardPage />
               </Route>
               <Route path="/week">

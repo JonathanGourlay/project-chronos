@@ -37,6 +37,7 @@ import {
   BsTrash,
   BsArrowCounterclockwise,
   BsFillPauseFill,
+  BsCheckBox,
 } from "react-icons/bs";
 
 import {
@@ -166,6 +167,7 @@ export interface stateObject {
   billable: string;
   startTime: Date;
   timerStatus: boolean;
+  boardType: string;
 }
 
 export const KanbanBoardAdmin = () => {
@@ -176,6 +178,10 @@ export const KanbanBoardAdmin = () => {
   React.useEffect(() => {
     setState({ columnIndex: 0, boardState: [] });
     getUsers();
+    getDbBoards();
+    if (activeUser?.accessToken) {
+      getBoards(activeUser.accessToken);
+    }
   }, []);
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
@@ -471,123 +477,94 @@ export const KanbanBoardAdmin = () => {
 
   return (
     <div>
-      {state.selectedBoard ? (
-        <Button
-          type="button"
-          variant="success"
-          className="btn-sm w-50"
-          onClick={() => {
-            setState({
-              assignProjectModalVisible: true,
-            });
-          }}
-        >
-          <BsPersonPlus />
-        </Button>
-      ) : undefined}
-      {state.projects ? (
-        <>
-          <Dropdown>
-            <Dropdown.Toggle variant="success" id="dropdown-basic">
-              {state.selectedBoard
-                ? state.selectedBoard.projectName
-                : "Projects"}
-            </Dropdown.Toggle>
+      <Row style={{ padding: 10 }}>
+        {state.selectedBoard ? (
+          <Button
+            type="button"
+            variant="success"
+            onClick={() => {
+              setState({
+                assignProjectModalVisible: true,
+              });
+            }}
+          >
+            <BsPersonPlus />
+          </Button>
+        ) : undefined}
+        {state.projects ? (
+          <>
+            <Dropdown>
+              <Dropdown.Toggle variant="success" id="dropdown-basic">
+                {"View Projects"}
+              </Dropdown.Toggle>
 
-            <Dropdown.Menu>
-              {state.projects.map((board) => (
-                <>
-                  <Dropdown.Item
-                    onSelect={() => {
-                      setState({
-                        selectedBoard: board,
-                      });
-                      // modal appears to fill in project information such as timescales
-                    }}
-                  >
-                    {board.projectName}
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
-                </>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
-        </>
-      ) : (
+              <Dropdown.Menu>
+                {state.projects.map((board) => (
+                  <>
+                    <Dropdown.Item
+                      onSelect={() => {
+                        setState({
+                          selectedBoard: board,
+                          boardType: "Project",
+                        });
+                        // modal appears to fill in project information such as timescales
+                      }}
+                    >
+                      {board.projectName}
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                  </>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          </>
+        ) : (
+          <></>
+        )}
+        {state.boards ? (
+          <div>
+            <Dropdown>
+              <Dropdown.Toggle variant="success" id="dropdown-basic">
+                {"View Trello Boards"}
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu>
+                {state.boards.map((board) => (
+                  <>
+                    <Dropdown.Item
+                      onSelect={() => {
+                        setState({
+                          selectedBoard: board,
+                          boardType: "Trello",
+                        });
+                        // modal appears to fill in project information such as timescales
+                      }}
+                    >
+                      {board.projectName}
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                  </>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
+        ) : (
+          <></>
+        )}
         <Button
+          hidden={state.boardType !== "Trello"}
           type="button"
           variant="info"
           className="m-1"
           onClick={() => {
-            //NOTE - change this to the logged in users key
-            getDbBoards();
+            setState({
+              projectModalVisible: true,
+            });
           }}
         >
-          Get Projects
+          Generate Project
         </Button>
-      )}
-      {state.boards ? (
-        <div>
-          <Dropdown>
-            <Dropdown.Toggle variant="success" id="dropdown-basic">
-              {state.selectedBoard
-                ? state.selectedBoard.projectName
-                : "Generate Project"}
-            </Dropdown.Toggle>
-
-            <Dropdown.Menu>
-              {state.boards.map((board) => (
-                <>
-                  <Dropdown.Item
-                    onSelect={() => {
-                      setState({
-                        selectedBoard: board,
-                        projectModalVisible: true,
-                      });
-                      // modal appears to fill in project information such as timescales
-                    }}
-                  >
-                    {board.projectName}
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
-                </>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
-        </div>
-      ) : (
-        <>
-          <Button
-            type="button"
-            variant="info"
-            className="m-1"
-            onClick={() => {
-              //NOTE - change this to the logged in users key
-              activeUser &&
-              activeUser !== undefined &&
-              activeUser.accessToken &&
-              activeUser.role === "Admin"
-                ? getBoards(activeUser.accessToken)
-                : console.log("missed");
-            }}
-          >
-            Get Trello Boards
-          </Button>
-        </>
-      )}
-      <Button
-        type="button"
-        variant="info"
-        className="m-1"
-        onClick={() => {
-          setState({
-            columnModalVisible: true,
-            columnIndex: state.boardState.length,
-          });
-        }}
-      >
-        Add new group
-      </Button>
+      </Row>
       <AddColumnModal
         setState={setState}
         columnModalVisible={state.columnModalVisible}
@@ -636,7 +613,20 @@ export const KanbanBoardAdmin = () => {
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
-                          style={getListStyle(snapshot.isDraggingOver)}
+                          style={
+                            (getListStyle(snapshot.isDraggingOver),
+                            {
+                              backgroundColor: "#4c555d",
+                              borderRadius: 6,
+                              color: "white",
+                              margin: 10,
+                              justifyContent: "space-around",
+                              width:
+                                window.innerWidth /
+                                state.selectedBoard.columns!.length,
+                              textAlign: "center",
+                            })
+                          }
                           {...provided.droppableProps}
                         >
                           {state.columnIndex === index && (
@@ -661,9 +651,9 @@ export const KanbanBoardAdmin = () => {
                           )}
 
                           <>
-                            <h1>{column.columnId}</h1>
                             <h1>{column.columnName}</h1>
                             <Button
+                              hidden={state.boardType === "Trello"}
                               type="button"
                               variant="danger"
                               className="btn-sm w-50"
@@ -681,6 +671,9 @@ export const KanbanBoardAdmin = () => {
                               ? column.tasks!.map((card, cardIndex) => {
                                   return (
                                     <Draggable
+                                      isDragDisabled={
+                                        state.boardType === "Trello"
+                                      }
                                       key={`${column.columnId} - ${card.taskId}`}
                                       draggableId={`${column.columnId} - ${card.taskId}`}
                                       index={cardIndex}
@@ -715,6 +708,7 @@ export const KanbanBoardAdmin = () => {
                                                     ? itemStyles.background
                                                     : "red",
                                                 border: "none",
+                                                color: "black",
                                               }}
                                             >
                                               <Card.Header
@@ -724,7 +718,13 @@ export const KanbanBoardAdmin = () => {
                                                     "space-between",
                                                 }}
                                               >
-                                                <h4>
+                                                <h4
+                                                  hidden={
+                                                    state.boardType ===
+                                                      "Trello" ||
+                                                    card.taskDone === "true"
+                                                  }
+                                                >
                                                   <Timer
                                                     initialTime={1}
                                                     startImmediately={false}
@@ -749,6 +749,14 @@ export const KanbanBoardAdmin = () => {
                                                         <div>
                                                           {state.timerStatus ? (
                                                             <Button
+                                                              hidden={
+                                                                state.boardType ===
+                                                                  "Trello" ||
+                                                                card.points ===
+                                                                  0 ||
+                                                                card.taskDone ===
+                                                                  "true"
+                                                              }
                                                               onClick={() => {
                                                                 pause();
                                                                 setState({
@@ -761,6 +769,14 @@ export const KanbanBoardAdmin = () => {
                                                             </Button>
                                                           ) : (
                                                             <Button
+                                                              hidden={
+                                                                state.boardType ===
+                                                                  "Trello" ||
+                                                                card.points ===
+                                                                  0 ||
+                                                                card.taskDone ===
+                                                                  "true"
+                                                              }
                                                               onClick={() => {
                                                                 start();
                                                                 setState({
@@ -857,6 +873,10 @@ export const KanbanBoardAdmin = () => {
                                                                   </div>
                                                                   <div>
                                                                     <Button
+                                                                      disabled={
+                                                                        state.boardType ===
+                                                                        "Trello"
+                                                                      }
                                                                       style={{
                                                                         marginTop: 10,
                                                                       }}
@@ -898,17 +918,39 @@ export const KanbanBoardAdmin = () => {
                                                             }
                                                           >
                                                             <Button
+                                                              hidden={
+                                                                state.boardType ===
+                                                                  "Trello" ||
+                                                                card.points ===
+                                                                  0 ||
+                                                                card.taskDone ===
+                                                                  "true"
+                                                              }
                                                               onClick={async () => {}}
                                                             >
                                                               <BsStop />
                                                             </Button>
                                                           </OverlayTrigger>
                                                           <Button
+                                                            hidden={
+                                                              state.boardType ===
+                                                                "Trello" ||
+                                                              card.points ===
+                                                                0 ||
+                                                              card.taskDone ===
+                                                                "true"
+                                                            }
                                                             onClick={reset}
                                                           >
                                                             <BsArrowCounterclockwise />
                                                           </Button>
                                                           <Button
+                                                            hidden={
+                                                              state.boardType ===
+                                                                "Trello" ||
+                                                              card.taskDone ===
+                                                                "true"
+                                                            }
                                                             onClick={() => {
                                                               setState({
                                                                 cardId:
@@ -933,6 +975,30 @@ export const KanbanBoardAdmin = () => {
                                               </Card.Header>
 
                                               <Card.Body className="text-center p-0">
+                                                <Button
+                                                  hidden={
+                                                    card.taskDone === "true"
+                                                  }
+                                                  onClick={() => {
+                                                    card.taskDone = "true";
+                                                    const request =
+                                                      new UpdateTask(card);
+                                                    request.taskDone = "true";
+                                                    request.pointsTotal =
+                                                      card.points;
+                                                    request.addedPoints =
+                                                      card.addedPoints;
+                                                    apiClient.updateTask(
+                                                      request
+                                                    );
+                                                    setState({
+                                                      columnIndex: index,
+                                                    });
+                                                  }}
+                                                  variant="success"
+                                                >
+                                                  <BsCheckBox />
+                                                </Button>
                                                 <Card.Title>
                                                   {state.counter}
                                                 </Card.Title>
@@ -957,6 +1023,11 @@ export const KanbanBoardAdmin = () => {
                                                 }}
                                               >
                                                 <Button
+                                                  hidden={
+                                                    state.boardType ===
+                                                      "Trello" ||
+                                                    card.taskDone === "true"
+                                                  }
                                                   type="button"
                                                   variant="danger"
                                                   className="btn-sm w-50"
@@ -982,6 +1053,12 @@ export const KanbanBoardAdmin = () => {
                                                   <BsTrash />
                                                 </Button>
                                                 <Button
+                                                  hidden={
+                                                    state.boardType ===
+                                                      "Trello" ||
+                                                    card.points === 0 ||
+                                                    card.taskDone === "true"
+                                                  }
                                                   type="button"
                                                   variant="success"
                                                   className="btn-sm w-50"

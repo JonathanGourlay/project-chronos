@@ -63,7 +63,7 @@ export default function WeekPage() {
                               new Date().setDate(new Date().getDate() + 7)
                             ) &&
                           days[
-                            task.endTime!.getDay() != 6 ||
+                            task.endTime!.getDay() != 6 &&
                             task.endTime!.getDay() != 0
                               ? task.endTime!.getDay()
                               : 1
@@ -71,10 +71,21 @@ export default function WeekPage() {
                         ) {
                           return (
                             <div>
-                              <Card>
-                                <Card.Text>{task.taskName}</Card.Text>
-                                <Card.Text>{task.comments}</Card.Text>
-                                <Card.Text>{task.endTime!.getDay()}</Card.Text>
+                              <Card
+                                key={task.taskId}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-around",
+                                  background:
+                                    task.points !== 0 ? "green" : "red",
+                                  border: "none",
+                                }}
+                              >
+                                <Card.Body className="text-center p-0">
+                                  <Card.Title>{task.taskName}</Card.Title>
+                                  <Card.Title>{task.comments}</Card.Title>
+                                  <Card.Title>{task.points}</Card.Title>
+                                </Card.Body>
                               </Card>
                               {task.timelogs?.map((timelog) => {
                                 return (

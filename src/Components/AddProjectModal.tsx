@@ -77,6 +77,8 @@ const AddProjectModal = (props: IHandlerProps) => {
               const result = await apiClient.createProject(createRequest);
               setState((prev) => {
                 const newState = prev;
+                newState.boardType = "Project";
+                newState.projectModalVisible = false;
                 newState.selectedBoard.projectId = result;
                 newState.selectedBoard.projectName = formState.projectName;
                 newState.selectedBoard.timeIncrement =

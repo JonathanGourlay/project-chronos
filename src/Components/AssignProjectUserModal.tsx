@@ -61,6 +61,7 @@ const AssignProjectUserModal = (props: IHandlerProps) => {
                 project.projectId,
                 formState.selectedUser.userId
               );
+              setState({ assignProjectModalVisible: false });
             }}
           >
             <Form.Group controlId={`${project.projectId}`}>
@@ -94,7 +95,7 @@ const AssignProjectUserModal = (props: IHandlerProps) => {
                               );
                               setState((prev) => {
                                 const newState = prev;
-                                newState.assignModalVisible = false;
+                                newState.assignProjectModalVisible = false;
                                 return newState;
                               });
                             }}

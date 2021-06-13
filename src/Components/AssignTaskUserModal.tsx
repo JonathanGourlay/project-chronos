@@ -58,6 +58,7 @@ const AssignUserModal = (props: IHandlerProps) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
               apiClient.setTaskUser(card.taskId, formState.selectedUser.userId);
+              setState({ assignModalVisible: false });
             }}
           >
             <Form.Group controlId={`${card.taskId}`}>

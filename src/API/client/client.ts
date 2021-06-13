@@ -57,6 +57,11 @@ export interface IClient {
      * @param body (optional) 
      * @return Success
      */
+    getUserTimelogs(body: number | undefined): Promise<TimeLogDto[]>;
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
     checkLogin(body: LoginObject | undefined): Promise<UserDto>;
     /**
      * @param body (optional) 
@@ -636,6 +641,59 @@ export class Client implements IClient {
             });
         }
         return Promise.resolve<TaskObject[]>(<any>null);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    getUserTimelogs(body: number | undefined): Promise<TimeLogDto[]> {
+        let url_ = this.baseUrl + "/Project/GetUserTimelogs";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ = <RequestInit>{
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetUserTimelogs(_response);
+        });
+    }
+
+    protected processGetUserTimelogs(response: Response): Promise<TimeLogDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("Server Error", status, _responseText, _headers, result500);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(TimeLogDto.fromJS(item));
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TimeLogDto[]>(<any>null);
     }
 
     /**
@@ -3289,6 +3347,62 @@ export interface ITaskObject {
     addedReason?: string | undefined;
     timelogs?: TimeLogObject[] | undefined;
     users?: UserObject[] | undefined;
+}
+
+export class TimeLogDto implements ITimeLogDto {
+    timeLogId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
+
+    constructor(data?: ITimeLogDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.timeLogId = _data["timeLogId"];
+            this.startTime = _data["startTime"] ? new Date(_data["startTime"].toString()) : <any>undefined;
+            this.endTime = _data["endTime"] ? new Date(_data["endTime"].toString()) : <any>undefined;
+            this.totalTime = _data["totalTime"];
+            this.billable = _data["billable"];
+            this.archived = _data["archived"];
+        }
+    }
+
+    static fromJS(data: any): TimeLogDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TimeLogDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["timeLogId"] = this.timeLogId;
+        data["startTime"] = this.startTime ? this.startTime.toISOString() : <any>undefined;
+        data["endTime"] = this.endTime ? this.endTime.toISOString() : <any>undefined;
+        data["totalTime"] = this.totalTime;
+        data["billable"] = this.billable;
+        data["archived"] = this.archived;
+        return data; 
+    }
+}
+
+export interface ITimeLogDto {
+    timeLogId?: number;
+    startTime?: Date;
+    endTime?: Date;
+    totalTime?: number;
+    billable?: string | undefined;
+    archived?: string | undefined;
 }
 
 export class TimeLogObject implements ITimeLogObject {

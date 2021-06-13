@@ -1,9 +1,23 @@
 import { forEach } from "lodash";
 import React from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
-import { Button, Card, Row, Container, Col, Dropdown } from "react-bootstrap";
+import {
+  Button,
+  Card,
+  Row as tr,
+  Container,
+  Col as td,
+  Dropdown,
+  ProgressBar,
+  Table,
+} from "react-bootstrap";
 import apiClient from "../API/client";
-import { ProjectDto, TaskObject } from "../API/client/client";
+import {
+  ProjectDto,
+  TaskObject,
+  TimeLogDto,
+  TimeLogViewDto,
+} from "../API/client/client";
 import dayjs from "dayjs";
 import * as isBetween from "dayjs/plugin/isBetween";
 
@@ -15,6 +29,7 @@ export interface stateObject {
   addedPointsTotal: number;
   pointsAchieved: number;
   projects: ProjectDto[];
+  timelogs: TimeLogDto[];
   selectedBoard: ProjectDto;
   prevPointsTotal: number;
   prevAddedPoints: number;
@@ -28,9 +43,12 @@ export default function DashboardPage() {
   const tasks: TaskObject[] = [];
   const [state, setState] = useSetState<stateObject>();
   const { activeUser, setActiveUser } = GlobalContainer.useContainer();
-
+  React.useEffect(() => {
+    getDbBoards(activeUser!.userId);
+  }, []);
   const getDbBoards = async (userId: number) => {
     const boards = await apiClient.getUserProjects(userId);
+    const timelogs = await apiClient.getUserTimelogs(userId);
     var pointsTotal = 0;
     var addedPoints = 0;
     var pointsAchieved = 0;
@@ -75,6 +93,7 @@ export default function DashboardPage() {
     setState({
       ...state,
       projects: boards,
+      timelogs: timelogs,
       pointsTotal: pointsTotal,
       pointsAchieved: pointsAchieved,
       addedPointsTotal: addedPoints,
@@ -94,77 +113,179 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div>
-      {state?.projects ? (
-        <Dropdown>
-          <Dropdown.Toggle variant="success" id="dropdown-basic">
-            {state.selectedBoard
-              ? state.selectedBoard.projectName
-              : "Select Project"}
-          </Dropdown.Toggle>
-
-          <Dropdown.Menu>
-            {state.projects.map((project) => (
-              <>
-                <Dropdown.Item
-                  onSelect={() => {
-                    setState({ selectedBoard: project });
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-around",
+      }}
+    >
+      <Table>
+        <tr>
+          <td>
+            <Card>
+              <h1>
+                {state.prevPointsAchieved?.toFixed(0)} Points Achieved Last
+                Month Out of {state.prevPointsTotal?.toFixed(0)}{" "}
+                <Button
+                  style={{
+                    backgroundColor:
+                      state.prevPointsAchieved > state.thisPointsAchieved
+                        ? "red"
+                        : "green",
                   }}
-                >
-                  {project.projectName}
-                </Dropdown.Item>
-                <Dropdown.Divider />
-              </>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
-      ) : (
-        <Button
-          type="button"
-          variant="info"
-          className="m-1"
-          onClick={() => {
-            //NOTE - change this to the logged in users key
-            activeUser && activeUser !== undefined
-              ? getDbBoards(activeUser.userId)
-              : console.log("missed");
-          }}
-        >
-          Get Boards
-        </Button>
-      )}
+                />
+              </h1>
+              <h1>
+                {state.thisPointsAchieved?.toFixed(0)} Points Achieved This
+                Month Out of {state.thisPointsTotal?.toFixed(0)}{" "}
+                <Button
+                  style={{
+                    backgroundColor:
+                      state.prevPointsTotal > state.thisPointsTotal
+                        ? "red"
+                        : "green",
+                  }}
+                />{" "}
+                <br />
+              </h1>
+            </Card>
+          </td>
 
-      <h1>
-        {state.prevPointsAchieved?.toFixed(0)} Points Achieved Last Month Out of{" "}
-        {state.prevPointsTotal?.toFixed(0)} <br />
-        <Button
-          style={{
-            backgroundColor:
-              state.prevPointsAchieved > state.thisPointsAchieved
-                ? "red"
-                : "green",
-          }}
-        />
-        {state.thisPointsAchieved?.toFixed(0)} Points Achieved This Month Out of{" "}
-        {state.thisPointsTotal?.toFixed(0)}{" "}
-        <Button
-          style={{
-            backgroundColor:
-              state.prevPointsTotal > state.thisPointsTotal ? "red" : "green",
-          }}
-        />{" "}
-        <br />
-        {state.prevAddedPoints?.toFixed(0)} Points Added After Project Start
-        Last Month <br />
-        <Button
-          style={{
-            backgroundColor:
-              state.prevAddedPoints < state.thisAddedPoints ? "red" : "green",
-          }}
-        />
-        {state.thisAddedPoints?.toFixed(0)} Points Added After Project Start
-        This Month <br />
-      </h1>
+          <td style={{ flex: 0.4 }}>
+            <Card>
+              <h1>
+                {state.prevAddedPoints?.toFixed(0)} Points Added After Project
+                Start Last Month{" "}
+                <Button
+                  style={{
+                    backgroundColor:
+                      state.prevAddedPoints < state.thisAddedPoints
+                        ? "red"
+                        : "green",
+                  }}
+                />
+              </h1>
+              <h1>
+                {state.thisAddedPoints?.toFixed(0)} Points Added After Project
+                Start This Month <br />
+              </h1>
+            </Card>
+          </td>
+        </tr>
+        <tr>
+          {state.timelogs && (
+            <>
+              <td>
+                <Card>
+                  <h1>You have created {state.timelogs.length} timelogs</h1>
+                </Card>
+              </td>
+
+              <td>
+                <Card>
+                  <h1>
+                    {state.timelogs.reduce(
+                      (a, b) => a + (b.totalTime ? b.totalTime : 0),
+                      0
+                    )}{" "}
+                    Hours Worked
+                  </h1>
+                </Card>
+              </td>
+            </>
+          )}
+        </tr>
+        <tr>
+          <td colSpan={2}>
+            {state?.projects ? (
+              <Dropdown>
+                <Dropdown.Toggle variant="success" id="dropdown-basic">
+                  {state.selectedBoard
+                    ? state.selectedBoard.projectName
+                    : "Select Project"}
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+                  {state.projects.map((project) => (
+                    <>
+                      <Dropdown.Item
+                        onSelect={() => {
+                          setState({ selectedBoard: project });
+                        }}
+                      >
+                        {project.projectName}
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                    </>
+                  ))}
+                </Dropdown.Menu>
+              </Dropdown>
+            ) : (
+              <Button
+                type="button"
+                variant="info"
+                className="m-1"
+                onClick={() => {
+                  //NOTE - change this to the logged in users key
+                  activeUser && activeUser !== undefined
+                    ? getDbBoards(activeUser.userId)
+                    : console.log("missed");
+                }}
+              >
+                Get Boards
+              </Button>
+            )}
+          </td>
+        </tr>
+        <tr>
+          {state.selectedBoard ? (
+            <>
+              {/* <Col> */}
+              <td>
+                <h1>
+                  <Card>Points Achived Percentage</Card>
+                  <Card>
+                    <ProgressBar
+                      animated
+                      now={
+                        state.selectedBoard.pointsAchived &&
+                        state.selectedBoard.pointsTotal &&
+                        (state.selectedBoard.pointsAchived /
+                          state.selectedBoard.pointsTotal) *
+                          100
+                      }
+                      label={`${
+                        state.selectedBoard.pointsAchived &&
+                        state.selectedBoard.pointsTotal &&
+                        (
+                          (state.selectedBoard.pointsAchived /
+                            state.selectedBoard.pointsTotal) *
+                          100
+                        ).toPrecision(2)
+                      } %`}
+                    />
+                  </Card>
+                </h1>
+              </td>
+              <td>
+                <h1>
+                  <Card>
+                    {state.selectedBoard.pointsAchived} Points Achived out of{" "}
+                    {state.selectedBoard.pointsTotal}
+                    <br />
+                  </Card>
+
+                  <Card>
+                    {state.selectedBoard.addedPoints} Points added since project
+                    kicked off
+                    <br />
+                  </Card>
+                </h1>
+              </td>
+            </>
+          ) : undefined}
+        </tr>
+      </Table>
     </div>
   );
 }
