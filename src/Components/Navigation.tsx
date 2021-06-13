@@ -23,7 +23,13 @@ const Navigation = () => {
         <Navbar
           bg="dark"
           variant="dark"
-          style={{ textAlign: "right", justifyContent: "space-between" }}
+          style={{
+            textAlign: "right",
+            justifyContent: "space-between",
+            position: "fixed",
+            width: window.innerWidth - 10,
+            zIndex: 2,
+          }}
         >
           <Navbar.Brand>
             <h3>Project Chronos</h3>

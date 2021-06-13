@@ -43,7 +43,7 @@ export default function WeekPage() {
           getTasks();
         }}
       ></Button>
-      <Row>
+      <Row style={{ marginTop: 50 }}>
         {dow.map((day, index) => {
           return (
             <Col>
@@ -53,7 +53,7 @@ export default function WeekPage() {
                 </Card.Header>
                 <Card.Body className="text-center p-0">
                   <div>
-                    {state.tasks.length !== 0 ? (
+                    {state.tasks.length > 0 ? (
                       state.tasks.map((task) => {
                         if (
                           task.endTime &&

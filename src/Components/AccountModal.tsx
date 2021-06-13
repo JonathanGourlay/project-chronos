@@ -38,16 +38,14 @@ const popover = (
     <Popover.Title as="h3">Personal Access Token</Popover.Title>
     <Popover.Content>
       Please enter your personal access token for your chosen Project Management
-      Tool. <br /> The following button will take you to GitHub's documentation
+      Tool. <br /> The following button will take you to Trello's documentation
       for this:
     </Popover.Content>
     <Button
       variant="primary"
       type="submit"
       onClick={() => {
-        window.open(
-          "https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token"
-        );
+        window.open("https://trello.com/app-key");
       }}
     >
       Documentation

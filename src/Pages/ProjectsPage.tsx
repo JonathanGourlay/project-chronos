@@ -6,15 +6,20 @@ import GlobalContainer from "../API/GlobalState";
 import { AccountModal } from "../Components/AccountModal";
 import { KanbanBoard } from "../Components/KanBanBoard";
 import { KanbanBoardAdmin } from "../Components/KanBanBoardAdmin";
+import WeekPage from "./WeekPage";
 export default function ProjectsPage() {
   const { activeUser, setActiveUser } = GlobalContainer.useContainer();
   return (
     <div>
       {/* <Board /> */}
       {activeUser && activeUser.role !== "Admin" ? (
-        <KanbanBoard></KanbanBoard>
+        <>
+          <KanbanBoard></KanbanBoard>
+        </>
       ) : (
-        <KanbanBoardAdmin></KanbanBoardAdmin>
+        <>
+          <KanbanBoardAdmin></KanbanBoardAdmin>
+        </>
       )}
     </div>
   );
