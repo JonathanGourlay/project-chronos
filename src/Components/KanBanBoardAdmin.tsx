@@ -492,6 +492,7 @@ export const KanbanBoardAdmin = () => {
                   backgroundColor: "white",
                   height: "100%",
                   position: "fixed",
+                  borderRadius: 6,
                 }}
               >
                 <Tabs defaultActiveKey="profile" id="uncontrolled-tab-example">
@@ -500,6 +501,7 @@ export const KanbanBoardAdmin = () => {
                       {state.projects.map((board) => (
                         <>
                           <ListGroup.Item
+                            action
                             onClick={() => {
                               setState({
                                 selectedBoard: board,

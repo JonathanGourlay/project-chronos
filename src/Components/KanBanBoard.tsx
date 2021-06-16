@@ -386,18 +386,20 @@ export const KanbanBoard = () => {
             <>
               <div
                 style={{
-                  backgroundColor: "white",
+                  backgroundColor: "#7a848e",
                   height: "100%",
                   position: "fixed",
                   width: "13%",
+                  borderRadius: 6,
                 }}
               >
-                <Tabs defaultActiveKey="profile" id="uncontrolled-tab-example">
-                  <Tab eventKey="home" title="View Projects">
+                <Tabs defaultActiveKey="home" id="uncontrolled-tab-example">
+                  <Tab eventKey="home" title="View Projects" active>
                     <ListGroup defaultActiveKey="#link1">
                       {state.boards.map((board) => (
                         <>
                           <ListGroup.Item
+                            action
                             onClick={() => {
                               setState({
                                 selectedBoard: board,
