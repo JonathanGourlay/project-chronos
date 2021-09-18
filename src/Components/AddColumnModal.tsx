@@ -1,14 +1,20 @@
 import React from "react";
 import { Button, Modal, Form } from "react-bootstrap";
+import { ColumnDto } from "../API/client/client";
 // import { State } from "../Scripts/GlobalState";
 // import { State } from "../Scripts/GlobalState";
 
-import { Column } from "./KanBanBoard";
+import { stateObject } from "./KanBanBoard";
 
 interface IHandlerProps {
-  setColumnModalVisible: (show: boolean) => void;
+  setState: (
+    patch:
+      | Partial<stateObject>
+      | ((prevState: stateObject) => Partial<stateObject>)
+  ) => void;
+  //setColumnModalVisible: (show: boolean) => void;
   columnModalVisible: boolean | undefined;
-  addColumn: (index: number, form: Column) => void;
+  addColumn: (index: number, form: ColumnDto) => void;
   columnIndex: number;
   // setColumnState: React.Dispatch<React.SetStateAction<number>>;
 }
@@ -17,18 +23,9 @@ interface IHandlerProps {
 const AddColumnModal = (props: IHandlerProps) => {
   // Global State Variables
   // let { state, setState, getItems, setCardModalVisible } = State.useContainer();
-  const {
-    columnModalVisible,
-    setColumnModalVisible,
-    columnIndex,
-    addColumn,
-  } = props;
+  const { columnModalVisible, setState, columnIndex, addColumn } = props;
 
-  const [formState, setFormState] = React.useState<Column>({
-    id: "",
-    title: "",
-    cards: [],
-  });
+  const [formState, setFormState] = React.useState<ColumnDto>();
 
   return (
     <>
@@ -43,21 +40,28 @@ const AddColumnModal = (props: IHandlerProps) => {
               // API Create Call - remove prevent default when api call in place
               e.preventDefault();
               // Clone state to modify
-              const newState = formState;
+              let newState = formState;
               // Set stateClone.id to cardId
-              newState.id = `${columnIndex}`;
+              if (newState) {
+                newState.columnId = columnIndex + 1;
+                newState.tasks = [];
+              } else {
+                newState = new ColumnDto();
+              }
               // Set formState to new modified state
               setFormState(newState);
               // Run add Item function
-              //   addItemToColumn(columnIndex, formState);
-              addColumn(columnIndex, formState);
-              //   setColumnState(0);
+              addColumn(columnIndex, newState);
               // Set modalVisible to false
-              setColumnModalVisible(false);
+              setState({ columnModalVisible: false });
             }}
           >
-            <Form.Group controlId={`${columnIndex}`}>
-              <Form.Control type="string" value={columnIndex} disabled={true} />
+            <Form.Group controlId={`${columnIndex + 1}`}>
+              <Form.Control
+                type="string"
+                value={columnIndex + 1}
+                disabled={true}
+              />
             </Form.Group>
             <Form.Group controlId={`formBasicName ${columnIndex}`}>
               <Form.Control
@@ -66,10 +70,10 @@ const AddColumnModal = (props: IHandlerProps) => {
                 placeholder="Column Name"
                 onChange={(i) => {
                   // Clone state to modify
-                  const newState = formState;
+                  const newState = { ...formState };
                   // Set stateClone.tite to target value
-                  newState.title = i.target.value;
-                  setFormState(newState);
+                  newState.columnName = i.target.value;
+                  setFormState(newState as ColumnDto);
                 }}
               />
             </Form.Group>
@@ -83,7 +87,7 @@ const AddColumnModal = (props: IHandlerProps) => {
           <Button
             variant="secondary"
             onClick={() => {
-              setColumnModalVisible(false);
+              setState({ columnModalVisible: false });
             }}
           >
             Close

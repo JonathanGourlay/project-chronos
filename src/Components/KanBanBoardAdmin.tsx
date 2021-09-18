@@ -1,4 +1,4 @@
-import React, { CSSProperties } from "react";
+import React, { CSSProperties, useState } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -7,6 +7,7 @@ import {
   DraggableLocation,
   NotDraggingStyle,
   DraggingStyle,
+  DragStart,
 } from "react-beautiful-dnd";
 import {
   Accordion,
@@ -14,7 +15,10 @@ import {
   ButtonGroup,
   Card,
   Col,
+  Container,
   Dropdown,
+  FormControl,
+  InputGroup,
   ListGroup,
   OverlayTrigger,
   Popover,
@@ -32,6 +36,7 @@ import AddColumnModal from "./AddColumnModal";
 import apiClient from "../API/client/";
 import { useToasts } from "react-toast-notifications";
 import {
+  BsThreeDots,
   BsPlay,
   BsStop,
   BsPersonPlus,
@@ -44,17 +49,28 @@ import {
 
 import {
   ColumnDto,
+  ColumnObject,
   ProjectDto,
   TaskDto,
+  MoveCardRequest,
+  GetBoardByIdRequest,
+  DeleteCardRequest,
   CreateTask,
   CreateColumn,
+  UpdateTask,
+  CreateProject,
+  UserDto,
   CreateTimeLog,
   ICreateTimeLog,
-  UpdateTask,
 } from "../API/client/client";
-import { useSetState } from "react-use";
+import { useHover, useSetState } from "react-use";
 import GlobalContainer from "../API/GlobalState";
+import UpdateCardModal from "./UpdateCardModal";
+import AddProjectModal from "./AddProjectModal";
+import AssignUserModal from "./AssignTaskUserModal";
+import AssignProjectUserModal from "./AssignProjectUserModal";
 import Timer from "react-compound-timer/build";
+import WeekPage from "../Pages/WeekPage";
 
 export type BoardCard = TaskDto;
 export type Board = ColumnDto[][];
@@ -117,9 +133,7 @@ function move(
     return;
   }
 }
-const moveTask = async (columnId: number, taskId: number) => {
-  await apiClient.moveTask(columnId, taskId);
-};
+
 const getItemStyle = (
   isDragging: boolean,
   draggableStyle: DraggingStyle | NotDraggingStyle | undefined
@@ -156,35 +170,91 @@ export interface stateObject {
   boards: ProjectDto[];
   projects: ProjectDto[];
   selectedBoard: ProjectDto;
+  users: Array<UserDto>;
   counter: number;
   billable: string;
   startTime: Date;
   timerStatus: boolean;
+  boardType: string;
 }
 
-export const KanbanBoard = () => {
+export const KanbanBoardAdmin = () => {
   const [state, setState] = useSetState<stateObject>();
   const { activeUser, setActiveUser } = GlobalContainer.useContainer();
   const { addToast } = useToasts();
 
   React.useEffect(() => {
     setState({ columnIndex: 0, boardState: [] });
-
-    if (activeUser?.userId) {
-      getDbBoards(activeUser.userId);
+    getUsers();
+    getDbBoards();
+    if (activeUser?.accessToken) {
+      getBoards(activeUser.accessToken);
     }
   }, []);
   React.useEffect(() => {}, [state.boardState]);
   React.useEffect(() => {}, [state?.selectedBoard]);
-  React.useEffect(() => {}, [state.boardState]);
-  React.useEffect(() => {}, [state?.selectedBoard]);
-  React.useEffect(() => {}, [state?.timerStatus]);
 
-  const getDbBoards = async (userId: number) => {
-    const boards = await apiClient.getUserProjects(userId);
+  const getDbBoards = async () => {
+    const boards = await apiClient.getAdminProjects();
+    setState({ ...state, projects: boards });
+  };
+
+  const getBoards = async (token: string) => {
+    const boards = await apiClient.getBoards(token);
     setState({ ...state, boards: boards });
   };
+  const moveCard = async (
+    token: string,
+    cardId: string,
+    newPosition: string,
+    boardId: string
+  ) => {
+    if (activeUser?.accessToken) {
+      var moveRequest = new MoveCardRequest();
+      moveRequest.token = activeUser!.accessToken;
+      moveRequest.cardId = cardId;
+      moveRequest.newPosition = newPosition;
+      moveRequest.boardId = boardId;
+      await apiClient.moveCard(moveRequest);
+    }
+  };
+
+  const getUsers = async () => {
+    const users = await apiClient.getUsers();
+    console.log(users);
+    setState((prev) => {
+      const newState = prev;
+      newState.users = users;
+      return newState;
+    });
+  };
+
+  const deleteCard = async (token: string, cardId: string) => {
+    if (activeUser?.accessToken) {
+      var deleteRequest = new DeleteCardRequest();
+      deleteRequest.token = activeUser!.accessToken;
+      deleteRequest.cardId = cardId;
+      await apiClient.deleteCard(deleteRequest);
+    }
+  };
+  const moveTask = async (columnId: number, taskId: number) => {
+    await apiClient.moveTask(columnId, taskId);
+  };
+
   const addItemToColumn = async (index: number, form: TaskDto) => {
+    setState((prev) => {
+      const newState = prev;
+      if (newState.selectedBoard.columns) {
+        newState.selectedBoard.columns[index].tasks === undefined
+          ? (newState.selectedBoard.columns[index].tasks = new Array<TaskDto>(
+              new TaskDto(form)
+            ))
+          : newState.selectedBoard.columns[index].tasks!.push(
+              new TaskDto(form)
+            );
+      }
+      return newState;
+    });
     if (state.selectedBoard.columns) {
       const request = new CreateTask();
       request.columnId = state.selectedBoard.columns[index].columnId;
@@ -201,19 +271,6 @@ export const KanbanBoard = () => {
       request.taskDeleted = "false";
       request.taskDone = "false";
       const addTask = await apiClient.createTask(request);
-      setState((prev) => {
-        const newState = prev;
-        if (newState.selectedBoard.columns) {
-          newState.selectedBoard.columns[index].tasks === undefined
-            ? (newState.selectedBoard.columns[index].tasks = new Array<TaskDto>(
-                new TaskDto(form)
-              ))
-            : newState.selectedBoard.columns[index].tasks!.push(
-                new TaskDto(form)
-              );
-        }
-        return newState;
-      });
       addToast(
         <Toast>
           <Toast.Body>Saved!</Toast.Body>
@@ -284,6 +341,7 @@ export const KanbanBoard = () => {
         (column) => column.columnId === sInd
       );
       if (sInd !== dInd) {
+        console.log(destColumnIndex);
         if (
           activeUser?.accessToken &&
           state.cardId &&
@@ -294,8 +352,8 @@ export const KanbanBoard = () => {
           const t = sourceColumn!.tasks!.find(
             (task) => task.taskId === Number(state.cardId)
           );
-
           if (t !== undefined) {
+            console.log("t", t);
             // const res = await addItemToColumn(destColumnIndex, t);
             if (destColumn.columnId && t.taskId)
               moveTask(destColumn.columnId, t.taskId);
@@ -355,6 +413,7 @@ export const KanbanBoard = () => {
                 const destchange = newState.selectedBoard.columns.findIndex(
                   (column) => column.columnId === dInd
                 );
+                // console.log(sourechange, destchange);
 
                 if (newState.selectedBoard.columns[sourechange] === undefined) {
                   newState.selectedBoard.columns[sourechange].tasks =
@@ -362,11 +421,55 @@ export const KanbanBoard = () => {
                 }
                 newState.selectedBoard.columns[sourechange].tasks =
                   result[sInd];
+                if (newState.selectedBoard.columns[destchange] === undefined) {
+                  newState.selectedBoard.columns[destchange].tasks =
+                    Array<TaskDto>();
+                }
                 newState.selectedBoard.columns[destchange].tasks = result[dInd];
               }
               return newState;
             });
           }
+        }
+        const moveCard = async (
+          token: string,
+          cardId: string,
+          newPosition: string,
+          boardId: string
+        ) => {
+          if (activeUser?.accessToken) {
+            var moveRequest = new MoveCardRequest();
+            moveRequest.token = activeUser!.accessToken;
+            moveRequest.cardId = cardId;
+            moveRequest.newPosition = newPosition;
+            moveRequest.boardId = boardId;
+            await apiClient.moveCard(moveRequest);
+          }
+        };
+        const deleteCard = async (token: string, cardId: string) => {
+          if (activeUser?.accessToken) {
+            var deleteRequest = new DeleteCardRequest();
+            deleteRequest.token = activeUser!.accessToken;
+            deleteRequest.cardId = cardId;
+            await apiClient.deleteCard(deleteRequest);
+          }
+        };
+        var destId = state.selectedBoard.columns[dInd]?.trelloColumnId;
+        if (
+          activeUser?.accessToken &&
+          state.trelloCardId &&
+          state.selectedBoard.columns[sInd] &&
+          state.selectedBoard.columns[sInd].tasks &&
+          destId !== undefined &&
+          state.cardId
+        ) {
+          console.log("move");
+          moveCard(
+            activeUser?.accessToken,
+            state.trelloCardId,
+            destId,
+            state.selectedBoard.trelloProjectId
+          );
         }
       }
     }
@@ -378,7 +481,7 @@ export const KanbanBoard = () => {
         <Col
           style={{
             padding: "1rem",
-
+            maxWidth: "15%",
             marginTop: 70,
           }}
         >
@@ -386,23 +489,42 @@ export const KanbanBoard = () => {
             <>
               <div
                 style={{
-                  backgroundColor: "#7a848e",
+                  backgroundColor: "white",
                   height: "100%",
                   position: "fixed",
-                  width: "13%",
                   borderRadius: 6,
                 }}
               >
-                <Tabs defaultActiveKey="home" id="uncontrolled-tab-example">
-                  <Tab eventKey="home" title="View Projects" active>
+                <Tabs defaultActiveKey="profile" id="uncontrolled-tab-example">
+                  <Tab eventKey="home" title="View Projects">
                     <ListGroup defaultActiveKey="#link1">
-                      {state.boards.map((board) => (
+                      {state.projects.map((board) => (
                         <>
                           <ListGroup.Item
                             action
                             onClick={() => {
                               setState({
                                 selectedBoard: board,
+                                boardType: "Project",
+                              });
+                              // modal appears to fill in project information such as timescales
+                            }}
+                          >
+                            {board.projectName}
+                          </ListGroup.Item>
+                        </>
+                      ))}
+                    </ListGroup>
+                  </Tab>
+                  <Tab eventKey="profile" title="Trello Boards">
+                    <ListGroup defaultActiveKey="#link1">
+                      {state.boards.map((board) => (
+                        <>
+                          <ListGroup.Item
+                            onClick={() => {
+                              setState({
+                                selectedBoard: board,
+                                boardType: "Trello",
                               });
                               // modal appears to fill in project information such as timescales
                             }}
@@ -417,8 +539,61 @@ export const KanbanBoard = () => {
               </div>
             </>
           ) : (
-            <></>
+            <>
+              <div
+                style={{
+                  textAlign: "center",
+                  display: "flex",
+                  flex: 1,
+                  justifyContent: "center",
+                  width: "115em",
+                  height: window.screen.availHeight - 200,
+                }}
+              >
+                <Button
+                  style={{
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                  }}
+                >
+                  <Spinner animation="grow" />
+                  <br />
+                  Grabbing Trello Boards
+                </Button>
+              </div>
+            </>
           )}
+
+          {/* {state.projects ? (
+          <>
+            <Dropdown>
+              <Dropdown.Toggle variant="success" id="dropdown-basic">
+                {"View Projects"}
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu>
+                {state.projects.map((board) => (
+                  <>
+                    <Dropdown.Item
+                      onSelect={() => {
+                        setState({
+                          selectedBoard: board,
+                          boardType: "Project",
+                        });
+                        // modal appears to fill in project information such as timescales
+                      }}
+                    >
+                      {board.projectName}
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                  </>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          </>
+        ) : (
+          <></>
+        )} */}
         </Col>
         <Col
           style={{
@@ -435,6 +610,33 @@ export const KanbanBoard = () => {
             addColumn={addColumn}
           />
 
+          <AddProjectModal
+            setState={setState}
+            project={
+              state.selectedBoard ? state.selectedBoard : new ProjectDto()
+            }
+            projectModalVisible={state.projectModalVisible}
+          />
+          <UpdateCardModal
+            card={state.card ? state.card : new TaskDto()}
+            cardModalVisible={state.updateCardModalVisible}
+            setState={setState}
+            columnId={state.columnIndex}
+          />
+          <AssignUserModal
+            card={state.card ? state.card : new TaskDto()}
+            modalVisible={state.assignModalVisible}
+            setState={setState}
+            users={state.users}
+          />
+          <AssignProjectUserModal
+            project={
+              state.selectedBoard ? state.selectedBoard : new ProjectDto()
+            }
+            modalVisible={state.assignProjectModalVisible}
+            setState={setState}
+            users={state.users}
+          />
           <div
             style={{
               position: "fixed",
@@ -443,8 +645,35 @@ export const KanbanBoard = () => {
               zIndex: 1,
               backgroundColor: "#40464b",
             }}
-          ></div>
-          <div style={{ display: "flex", marginTop: 15 }}>
+          >
+            {state.selectedBoard && state.boardType === "Project" ? (
+              <Button
+                type="button"
+                variant="success"
+                onClick={() => {
+                  setState({
+                    assignProjectModalVisible: true,
+                  });
+                }}
+              >
+                <BsPersonPlus /> Add User to Project
+              </Button>
+            ) : undefined}
+            <Button
+              hidden={state.boardType !== "Trello"}
+              type="button"
+              variant="info"
+              className="m-1"
+              onClick={() => {
+                setState({
+                  projectModalVisible: true,
+                });
+              }}
+            >
+              Generate Project
+            </Button>
+          </div>
+          <div style={{ display: "flex", marginTop: 40 }}>
             {state.selectedBoard ? (
               state.boardState ? (
                 <DragDropContext
@@ -506,6 +735,7 @@ export const KanbanBoard = () => {
                                 <>
                                   <h1>{column.columnName}</h1>
                                   <Button
+                                    hidden={state.boardType === "Trello"}
                                     type="button"
                                     variant="danger"
                                     className="btn-sm w-50"
@@ -523,6 +753,9 @@ export const KanbanBoard = () => {
                                     ? column.tasks!.map((card, cardIndex) => {
                                         return (
                                           <Draggable
+                                            isDragDisabled={
+                                              state.boardType === "Trello"
+                                            }
                                             key={`${column.columnId} - ${card.taskId}`}
                                             draggableId={`${column.columnId} - ${card.taskId}`}
                                             index={cardIndex}
@@ -588,8 +821,10 @@ export const KanbanBoard = () => {
                                                         >
                                                           <h4
                                                             hidden={
+                                                              state.boardType ===
+                                                                "Trello" ||
                                                               card.taskDone ===
-                                                              "true"
+                                                                "true"
                                                             }
                                                           >
                                                             <Timer
@@ -626,6 +861,8 @@ export const KanbanBoard = () => {
                                                                             "transparent",
                                                                         }}
                                                                         hidden={
+                                                                          state.boardType ===
+                                                                            "Trello" ||
                                                                           card.points ===
                                                                             0 ||
                                                                           card.taskDone ===
@@ -646,6 +883,8 @@ export const KanbanBoard = () => {
                                                                     ) : (
                                                                       <Button
                                                                         hidden={
+                                                                          state.boardType ===
+                                                                            "Trello" ||
                                                                           card.points ===
                                                                             0 ||
                                                                           card.taskDone ===
@@ -752,6 +991,10 @@ export const KanbanBoard = () => {
                                                                             </div>
                                                                             <div>
                                                                               <Button
+                                                                                disabled={
+                                                                                  state.boardType ===
+                                                                                  "Trello"
+                                                                                }
                                                                                 style={{
                                                                                   marginTop: 10,
                                                                                 }}
@@ -794,6 +1037,8 @@ export const KanbanBoard = () => {
                                                                     >
                                                                       <Button
                                                                         hidden={
+                                                                          state.boardType ===
+                                                                            "Trello" ||
                                                                           card.points ===
                                                                             0 ||
                                                                           card.taskDone ===
@@ -818,6 +1063,8 @@ export const KanbanBoard = () => {
                                                                           "none",
                                                                       }}
                                                                       hidden={
+                                                                        state.boardType ===
+                                                                          "Trello" ||
                                                                         card.points ===
                                                                           0 ||
                                                                         card.taskDone ===
@@ -837,8 +1084,10 @@ export const KanbanBoard = () => {
                                                                           "none",
                                                                       }}
                                                                       hidden={
+                                                                        state.boardType ===
+                                                                          "Trello" ||
                                                                         card.taskDone ===
-                                                                        "true"
+                                                                          "true"
                                                                       }
                                                                       onClick={() => {
                                                                         setState(
@@ -875,8 +1124,10 @@ export const KanbanBoard = () => {
                                                           borderColor: "green",
                                                         }}
                                                         hidden={
+                                                          state.boardType ===
+                                                            "Trello" ||
                                                           card.taskDone ===
-                                                          "true"
+                                                            "true"
                                                         }
                                                         onClick={() => {
                                                           card.taskDone =
@@ -929,8 +1180,10 @@ export const KanbanBoard = () => {
                                                     >
                                                       <Button
                                                         hidden={
+                                                          state.boardType ===
+                                                            "Trello" ||
                                                           card.taskDone ===
-                                                          "true"
+                                                            "true"
                                                         }
                                                         type="button"
                                                         variant="danger"
@@ -960,6 +1213,8 @@ export const KanbanBoard = () => {
                                                       </Button>
                                                       <Button
                                                         hidden={
+                                                          state.boardType ===
+                                                            "Trello" ||
                                                           card.points === 0 ||
                                                           card.taskDone ===
                                                             "true"
