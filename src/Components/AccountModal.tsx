@@ -63,7 +63,7 @@ export const AccountModal = (props: IHandlerProps) => {
     setActiveUser(user);
   };
   const errorToast = (
-    <Toast>
+    <Toast style={{ zIndex: 5, position: "relative" }}>
       <Toast.Body>
         Username or password incorrect <br /> Please try again
       </Toast.Body>
@@ -78,7 +78,7 @@ export const AccountModal = (props: IHandlerProps) => {
     const result = await apiClient.checkLogin(postObj);
     result && successfulLogin(result);
     if (!result) {
-      props.setAccountModalVisible(false);
+      // props.setAccountModalVisible(false);
       addToast(errorToast, {
         appearance: "error",
         autoDismiss: true,
@@ -87,7 +87,7 @@ export const AccountModal = (props: IHandlerProps) => {
   };
 
   return (
-    <div>
+    <div style={{ zIndex: 1 }}>
       <Modal show={props.accountModalVisible}>
         <Modal.Header>
           <Modal.Title>Account</Modal.Title>
@@ -263,17 +263,7 @@ export const AccountModal = (props: IHandlerProps) => {
           </Tabs>
         </Modal.Body>
 
-        <Modal.Footer>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              props.setAccountModalVisible(false);
-            }}
-          >
-            Close
-          </Button>
-        </Modal.Footer>
+        <Modal.Footer></Modal.Footer>
       </Modal>
     </div>
   );

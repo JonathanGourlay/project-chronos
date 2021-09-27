@@ -2,8 +2,6 @@ import { List } from "lodash";
 import React, { Props } from "react";
 import { Button, Modal, Form, Toast, Dropdown } from "react-bootstrap";
 import { useToasts } from "react-toast-notifications";
-// import { State } from "../Scripts/GlobalState";
-// import { State } from "../Scripts/GlobalState";
 import { createReducerContext, useSetState } from "react-use";
 import apiClient from "../API/client";
 import { CreateTask, ProjectDto, TaskDto, UserDto } from "../API/client/client";

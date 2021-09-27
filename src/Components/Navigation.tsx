@@ -11,6 +11,11 @@ import { AccountModal } from "./AccountModal";
 const Navigation = () => {
   const [accountModalVisible, setAccountModalVisible] = React.useState(false);
   const { activeUser, setActiveUser } = GlobalContainer.useContainer();
+  React.useEffect(() => {
+    if (activeUser === undefined) {
+      setAccountModalVisible(true);
+    }
+  }, []);
   return (
     <div
       style={{
@@ -82,8 +87,9 @@ const Navigation = () => {
               <Route path="/week">
                 <WeekPage />
               </Route>
-
-              <Route path="/day">Day Page Comp</Route>
+              <Route path="">
+                <DashboardPage />
+              </Route>
             </Switch>
           </Container>
         ) : null}

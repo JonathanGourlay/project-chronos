@@ -110,6 +110,7 @@ export default function DashboardPage() {
     if (activeUser?.userId) {
       getDbBoards(activeUser.userId);
     }
+    console.log(state.prevPointsAchieved);
   }, []);
 
   return (
@@ -119,7 +120,7 @@ export default function DashboardPage() {
         justifyContent: "space-around",
       }}
     >
-      <Table>
+      <Table style={{ marginTop: 80 }}>
         <tr>
           <td>
             <Card>
@@ -151,7 +152,7 @@ export default function DashboardPage() {
             </Card>
           </td>
 
-          <td style={{ flex: 0.4 }}>
+          <td>
             <Card>
               <h1>
                 {state.prevAddedPoints?.toFixed(0)} Points Added After Project
@@ -184,10 +185,9 @@ export default function DashboardPage() {
               <td>
                 <Card>
                   <h1>
-                    {state.timelogs.reduce(
-                      (a, b) => a + (b.totalTime ? b.totalTime : 0),
-                      0
-                    )}{" "}
+                    {state.timelogs
+                      .reduce((a, b) => a + (b.totalTime ? b.totalTime : 0), 0)
+                      .toFixed(2)}{" "}
                     Hours Worked
                   </h1>
                 </Card>
